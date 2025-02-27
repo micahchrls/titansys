@@ -20,19 +20,19 @@ export default function Dashboard() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 p-6">
                 <OverviewCards />
                 
-                <div className="grid gap-6">
+                <div className="grid gap-4">
                     <SalesChart />
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-4 lg:grid-cols-3">
                     <CategorySales />
                     <RevenueDistribution />
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-4 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <RecentOrders />
                     </div>

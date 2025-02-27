@@ -67,20 +67,20 @@ const getStatusColor = (status: string) => {
 
 export function RecentOrders() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold tracking-tight">Recent Orders</CardTitle>
+    <Card className="col-span-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-xl font-medium">Recent Orders</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead className="font-medium">Order ID</TableHead>
+              <TableHead className="font-medium">Customer</TableHead>
+              <TableHead className="font-medium">Items</TableHead>
+              <TableHead className="font-medium">Total</TableHead>
+              <TableHead className="font-medium">Status</TableHead>
+              <TableHead className="font-medium">Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
