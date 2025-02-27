@@ -69,7 +69,7 @@ export function RecentOrders() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Orders</CardTitle>
+        <CardTitle className="text-xl font-semibold tracking-tight">Recent Orders</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

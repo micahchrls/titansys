@@ -13,7 +13,7 @@ export function RevenueDistribution() {
   return (
     <Card className="col-span-full lg:col-span-1">
       <CardHeader>
-        <CardTitle>Revenue Distribution</CardTitle>
+        <CardTitle className="text-xl font-semibold tracking-tight">Revenue Distribution</CardTitle>
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">

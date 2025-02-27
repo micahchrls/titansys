@@ -14,7 +14,7 @@ export function CategorySales() {
   return (
     <Card className="col-span-full lg:col-span-2">
       <CardHeader>
-        <CardTitle>Sales by Category</CardTitle>
+        <CardTitle className="text-xl font-semibold tracking-tight">Sales by Category</CardTitle>
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">

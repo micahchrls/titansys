@@ -15,7 +15,7 @@ export function SalesChart() {
   return (
     <Card className="col-span-full">
       <CardHeader>
-        <CardTitle>Sales Overview</CardTitle>
+        <CardTitle className="text-xl font-semibold tracking-tight">Sales Overview</CardTitle>
       </CardHeader>
       <CardContent className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">

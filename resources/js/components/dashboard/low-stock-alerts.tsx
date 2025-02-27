@@ -38,7 +38,7 @@ export function LowStockAlerts() {
     <Card>
       <CardHeader className="flex flex-row items-center space-x-2">
         <AlertCircle className="h-5 w-5 text-yellow-500" />
-        <CardTitle>Low Stock Alerts</CardTitle>
+        <CardTitle className="text-xl font-semibold tracking-tight">Low Stock Alerts</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
