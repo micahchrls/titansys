@@ -1,47 +1,36 @@
 import { ReactNode } from "react";
-import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "./ui/table";
+import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 
 type Column<T> = {
     key: keyof T;
     header: string;
     render?: (value: T[keyof T], row: T) => ReactNode;
-}
+};
 
-type DataTableProps<T> = {
+type DataTableProps<T extends { id: number | string }> = {
     data: T[];
     columns: Column<T>[];
     className?: string;
-}
+};
 
-type TableHeaderProps<T> = {
-    columns: Column<T>[];
-}
-
-type TableRowProps<T> = {
-    row: T;
-    columns: Column<T>[];
-}
-
-function TableHeaderComponent<T>({ columns }: TableHeaderProps<T>) {
+function TableHeaderComponent<T>({ columns }: { columns: Column<T>[] }) {
     return (
         <TableHeader>
             <TableRow>
                 {columns.map((column) => (
-                    <TableHead key={column.key.toString()}>{column.header}</TableHead>
+                    <TableHead key={String(column.key)}>{column.header}</TableHead>
                 ))}
             </TableRow>
         </TableHeader>
     );
 }
 
-function TableRowComponent<T>({ row, columns }: TableRowProps<T>) {
+function TableRowComponent<T>({ row, columns }: { row: T; columns: Column<T>[] }) {
     return (
         <TableRow>
             {columns.map((column) => (
-                <TableCell key={`${row.id}-${column.key.toString()}`}>
-                    {column.render
-                        ? column.render(row[column.key], row)
-                        : row[column.key] as ReactNode}
+                <TableCell key={`${row.id}-${String(column.key)}`}>
+                    {column.render ? column.render(row[column.key], row) : (row[column.key] as ReactNode)}
                 </TableCell>
             ))}
         </TableRow>
