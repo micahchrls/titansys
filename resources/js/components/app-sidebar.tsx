@@ -1,10 +1,10 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
+import { NavManage } from '@/components/nav-manage';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Boxes, Folder, LayoutGrid, Store, TrendingUp } from 'lucide-react';
+import { BookOpen, Boxes, Folder, LayoutGrid, Store, TrendingUp, Layers, Tag, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -23,11 +23,29 @@ const mainNavItems: NavItem[] = [
         url: '/sales',
         icon: TrendingUp,
     },
+];
+
+const mainNavItemsManage: NavItem[] = [
     {
         title: 'Manage Store',
         url: '/stores',
         icon: Store,
-    }
+    },
+    {
+        title: 'Manage Category',
+        url: '/categories',
+        icon: Layers, // Represents categorized items
+    },
+    {
+        title: 'Manage Brand',
+        url: '/brands',
+        icon: Tag, // Represents registered brands
+    },
+    {
+        title: 'Manage Users',
+        url: '/users',
+        icon: Users, // Represents registered brands
+    },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -60,6 +78,7 @@ export function AppSidebar() {
 
             <SidebarContent className="text-[15px]">
                 <NavMain items={mainNavItems} />
+                <NavManage items={mainNavItemsManage} />
             </SidebarContent>
 
             <SidebarFooter>
