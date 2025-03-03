@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Boxes, Folder, LayoutGrid, Store, TrendingUp, Layers, Tag, Users } from 'lucide-react';
+import { BookOpen, Container, Boxes, Folder, LayoutGrid, Store, TrendingUp, Layers, Tag, Users, Settings } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -28,23 +28,34 @@ const mainNavItems: NavItem[] = [
 const mainNavItemsManage: NavItem[] = [
     {
         title: 'Manage Store',
-        url: '/stores',
+        url: '/admin/stores',
         icon: Store,
     },
     {
         title: 'Manage Category',
-        url: '/categories',
+        url: '/admin/categories',
         icon: Layers, // Represents categorized items
     },
     {
         title: 'Manage Brand',
-        url: '/brands',
+        url: '/admin/brands',
         icon: Tag, // Represents registered brands
     },
     {
+        title: 'Manage Suppliers',
+        url: '/admin/suppliers',
+        icon: Container, // Represents categorized items
+    },
+
+    {
         title: 'Manage Users',
-        url: '/users',
+        url: '/admin/users',
         icon: Users, // Represents registered brands
+    },
+    {
+        title: 'Settings',
+        url: '/settings/profile',
+        icon: Settings,
     },
 ];
 
@@ -82,7 +93,6 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                {/* <NavFooter items={footerNavItems} className="mt-auto text-sm" /> */}
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

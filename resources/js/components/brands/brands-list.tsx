@@ -11,40 +11,42 @@ import {
 } from '@/components/ui/table';
 import { CrudModal } from '@/components/ui/crud-modal';
 import { useForm } from '@inertiajs/react';
-import { Store, Edit, Trash2 } from 'lucide-react';
+import { Tag, Edit, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-interface StoreData {
+interface BrandData {
   id?: number;
   name: string;
-  address: string;
-  contact: string;
+  slug: string;
   description?: string;
+  website?: string;
+  logo_url?: string;
 }
 
-export function StoresList() {
+export function BrandsList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingStore, setEditingStore] = useState<StoreData | null>(null);
+  const [editingBrand, setEditingBrand] = useState<BrandData | null>(null);
 
-  const form = useForm<StoreData>({
+  const form = useForm<BrandData>({
     name: '',
-    address: '',
-    contact: '',
+    slug: '',
     description: '',
+    website: '',
+    logo_url: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const isEditing = !!editingStore;
+    const isEditing = !!editingBrand;
 
-    form.post(isEditing ? route('admin.stores.update', editingStore.id) : route('admin.stores.store'), {
+    form.post(isEditing ? route('admin.brands.update', editingBrand.id) : route('admin.brands.store'), {
       onSuccess: () => {
         setIsModalOpen(false);
         form.reset();
-        setEditingStore(null);
-        toast.success(isEditing ? 'Store updated successfully' : 'Store created successfully');
+        setEditingBrand(null);
+        toast.success(isEditing ? 'Brand updated successfully' : 'Brand created successfully');
       },
       onError: () => {
         toast.error('Something went wrong');
@@ -52,22 +54,23 @@ export function StoresList() {
     });
   };
 
-  const handleEdit = (store: StoreData) => {
-    setEditingStore(store);
+  const handleEdit = (brand: BrandData) => {
+    setEditingBrand(brand);
     form.setData({
-      name: store.name,
-      address: store.address,
-      contact: store.contact,
-      description: store.description || '',
+      name: brand.name,
+      slug: brand.slug,
+      description: brand.description || '',
+      website: brand.website || '',
+      logo_url: brand.logo_url || '',
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (storeId: number) => {
-    if (confirm('Are you sure you want to delete this store?')) {
-      router.delete(route('admin.stores.destroy', storeId), {
+  const handleDelete = (brandId: number) => {
+    if (confirm('Are you sure you want to delete this brand?')) {
+      router.delete(route('admin.brands.destroy', brandId), {
         onSuccess: () => {
-          toast.success('Store deleted successfully');
+          toast.success('Brand deleted successfully');
         },
         onError: () => {
           toast.error('Something went wrong');
@@ -79,21 +82,21 @@ export function StoresList() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-medium">Stores</h3>
+        <h3 className="text-lg font-medium">Brands</h3>
         <CrudModal
           trigger={
             <Button onClick={() => setIsModalOpen(true)}>
-              <Store className="mr-2 h-4 w-4" />
-              Add Store
+              <Tag className="mr-2 h-4 w-4" />
+              Add Brand
             </Button>
           }
-          title={editingStore ? 'Edit Store' : 'Add New Store'}
-          description={editingStore ? 'Edit store details' : 'Add a new store to the system'}
+          title={editingBrand ? 'Edit Brand' : 'Add New Brand'}
+          description={editingBrand ? 'Edit brand details' : 'Add a new brand to the system'}
           isOpen={isModalOpen}
           onOpenChange={(open) => {
             setIsModalOpen(open);
             if (!open) {
-              setEditingStore(null);
+              setEditingBrand(null);
               form.reset();
             }
           }}
@@ -101,12 +104,16 @@ export function StoresList() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Store Name</Label>
+                <Label htmlFor="name">Brand Name</Label>
                 <Input
                   id="name"
                   value={form.data.name}
-                  onChange={e => form.setData('name', e.target.value)}
-                  placeholder="Enter store name"
+                  onChange={e => {
+                    form.setData('name', e.target.value);
+                    // Auto-generate slug from name
+                    form.setData('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'));
+                  }}
+                  placeholder="Enter brand name"
                 />
                 {form.errors.name && (
                   <p className="text-sm text-red-500">{form.errors.name}</p>
@@ -114,28 +121,43 @@ export function StoresList() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="slug">Slug</Label>
                 <Input
-                  id="address"
-                  value={form.data.address}
-                  onChange={e => form.setData('address', e.target.value)}
-                  placeholder="Enter store address"
+                  id="slug"
+                  value={form.data.slug}
+                  onChange={e => form.setData('slug', e.target.value)}
+                  placeholder="Enter brand slug"
                 />
-                {form.errors.address && (
-                  <p className="text-sm text-red-500">{form.errors.address}</p>
+                {form.errors.slug && (
+                  <p className="text-sm text-red-500">{form.errors.slug}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contact">Contact</Label>
+                <Label htmlFor="website">Website</Label>
                 <Input
-                  id="contact"
-                  value={form.data.contact}
-                  onChange={e => form.setData('contact', e.target.value)}
-                  placeholder="Enter contact information"
+                  id="website"
+                  type="url"
+                  value={form.data.website}
+                  onChange={e => form.setData('website', e.target.value)}
+                  placeholder="Enter brand website URL"
                 />
-                {form.errors.contact && (
-                  <p className="text-sm text-red-500">{form.errors.contact}</p>
+                {form.errors.website && (
+                  <p className="text-sm text-red-500">{form.errors.website}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="logo_url">Logo URL</Label>
+                <Input
+                  id="logo_url"
+                  type="url"
+                  value={form.data.logo_url}
+                  onChange={e => form.setData('logo_url', e.target.value)}
+                  placeholder="Enter logo URL"
+                />
+                {form.errors.logo_url && (
+                  <p className="text-sm text-red-500">{form.errors.logo_url}</p>
                 )}
               </div>
 
@@ -145,7 +167,7 @@ export function StoresList() {
                   id="description"
                   value={form.data.description}
                   onChange={e => form.setData('description', e.target.value)}
-                  placeholder="Enter store description"
+                  placeholder="Enter brand description"
                   rows={3}
                 />
                 {form.errors.description && (
@@ -163,7 +185,7 @@ export function StoresList() {
                 Cancel
               </Button>
               <Button type="submit" disabled={form.processing}>
-                {editingStore ? 'Update' : 'Create'}
+                {editingBrand ? 'Update' : 'Create'}
               </Button>
             </div>
           </form>
@@ -175,17 +197,17 @@ export function StoresList() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Contact</TableHead>
+              <TableHead>Website</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {/* Example row - will be replaced with mapped data */}
             <TableRow>
-              <TableCell>Main Store</TableCell>
-              <TableCell>123 Main St</TableCell>
-              <TableCell>+1 234 567 890</TableCell>
+              <TableCell>Example Brand</TableCell>
+              <TableCell>example.com</TableCell>
+              <TableCell>Example brand description</TableCell>
               <TableCell>
                 <div className="flex space-x-2">
                   <Button
@@ -193,10 +215,10 @@ export function StoresList() {
                     size="icon"
                     onClick={() => handleEdit({
                       id: 1,
-                      name: 'Main Store',
-                      address: '123 Main St',
-                      contact: '+1 234 567 890',
-                      description: 'Main retail location'
+                      name: 'Example Brand',
+                      slug: 'example-brand',
+                      website: 'https://example.com',
+                      description: 'Example brand description'
                     })}
                   >
                     <Edit className="h-4 w-4" />

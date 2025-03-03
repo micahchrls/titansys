@@ -17,7 +17,19 @@ class StoreFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->company(),
+            'location' => fake()->address(),
+            'phone' => fake()->phoneNumber(),
+            'email' => fake()->unique()->companyEmail(),
+            'description' => fake()->paragraph(),
+            'is_active' => true,
         ];
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
     }
 }
