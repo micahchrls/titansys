@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('store_images', function (Blueprint $table) {
             $table->id();
+            $table->foreign('store_id')->references('id')->on('stores')->onDelete('cascade');
+            $table->string('file_name', 191);
+            $table->text('file_path');
+            $table->string('file_extension', 191);
+            $table->string('file_size', 191);
             $table->timestamps();
         });
     }

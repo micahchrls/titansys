@@ -9,4 +9,11 @@ class Store extends Model
 {
     /** @use HasFactory<\Database\Factories\Store\StoreFactory> */
     use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'location_address',
+        'contact_number',
+        'email',
+    ];
 }

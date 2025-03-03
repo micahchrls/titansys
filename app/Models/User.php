@@ -6,7 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\UserLog;
 
 class User extends Authenticatable
 {
@@ -24,7 +25,7 @@ class User extends Authenticatable
         'last_name',
         'username',
         'email',
-        'role_id',
+        'role',
         'password',
     ];
 
@@ -51,7 +52,8 @@ class User extends Authenticatable
         ];
     }
 
-    public function roles(): BelongsToMany {
-        return $this->belongsToMany(Role::class);
+    public function userLogs(): HasMany {
+        return $this->hasMany(UserLog::class);
     }
+
 }

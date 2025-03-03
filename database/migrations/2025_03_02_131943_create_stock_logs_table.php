@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('stock_logs', function (Blueprint $table) {
             $table->id();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('store_id')->references('id')->on('stores')->onDelete('cascade');
+            $table->enum('action_type', ['p urchase', 'stock_adjustment', 'stock_transfer', 'restock'])->notNullable();
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }
