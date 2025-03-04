@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash } from 'lucide-react';
 import DataTable from '@/components/datatable';
 import { SearchFilter } from "@/components/search-filter";
 import DataTablePagination from "@/components/pagination";
+import { router } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDebounce } from "@/hooks/use-debounce";
 import { BrandFormDialog } from '@/components/brands/brand-form-dialog';
@@ -63,12 +64,11 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
         }
         params.delete('page');
         
-        // router.get(window.location.pathname, {
-        //     data: Object.fromEntries(params),
-        //     preserveState: true,
-        //     preserveScroll: true,
-        //     replace: true
-        // });
+        router.visit(`${window.location.pathname}?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true
+        });
     }, [debouncedSearch, filters?.search]);
 
     const columns = [
@@ -119,16 +119,7 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
                 brand={selectedBrand}
             />
 
-            {selectedBrand && (
-                <DeleteBrandDialog
-                    open={deleteDialogOpen}
-                    onOpenChange={(open) => {
-                        setDeleteDialogOpen(open);
-                        if (!open) setSelectedBrand(undefined);
-                    }}
-                    brand={selectedBrand}
-                />
-            )}
+        
 
             <Toaster />
         </>
