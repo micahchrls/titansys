@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import BrandsIndex from '@/components/brands/brands-index';
 import { usePage } from '@inertiajs/react';
+import { Brand } from '@/types/index';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -10,12 +11,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/brands',
     }
 ];
-
-export interface Brand {
-    id: number;
-    title: string;
-    description: string;
-}
 
 export default function Brands() {
     const { brands } = usePage<{ brands: Brand[] }>().props;

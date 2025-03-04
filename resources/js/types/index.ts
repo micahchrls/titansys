@@ -55,3 +55,16 @@ export interface Brand {
     updated_at: string;
     [key: string]: unknown;
 }
+
+
+export interface Supplier {
+    id: number; 
+    name: string;
+    contact_name: string;
+    phone: string;
+    email: string;
+    address: string;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}

@@ -1,7 +1,9 @@
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { SuppliersList } from '@/components/suppliers/suppliers-list';
+import { Supplier } from '@/types/index';
+import { usePage } from '@inertiajs/react';
+import SuppliersIndex from '@/components/suppliers/suppliers-index';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -10,7 +12,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     }
 ];
 
+
 export default function Suppliers() {
+    const { suppliers } = usePage<{ suppliers: Supplier[] }>().props;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Suppliers" />
@@ -23,7 +28,7 @@ export default function Suppliers() {
                         </p>
                     </div>
                 </div>
-                <SuppliersList />
+                <SuppliersIndex suppliers={suppliers} />
             </div>
         </AppLayout>    
     );
