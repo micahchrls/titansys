@@ -21,14 +21,14 @@ class ProductBrandController extends Controller
 
             if ($request->has('search')) {
                 $search = $request->input('search');
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%");
                 });
             }
 
             $brands = $query->latest()->paginate(10);
-            
+
             return Inertia::render('brands', [
                 'brands' => $brands,
                 'filters' => $request->only(['search'])
@@ -70,12 +70,19 @@ class ProductBrandController extends Controller
                 'description' => 'nullable|string'
             ])->validate();
 
-            $brand->update($validated);
+            $brand->name = $validated['name'];
+            $brand->description = $validated['description'];
 
-            return redirect()->back();
+            if ($brand->isDirty()) {
+                $brand->save();
+                return redirect()->back();
+            } else {
+                return redirect()->back();
+            }
+
         } catch (\Exception $e) {
             Log::error('Error updating brand: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Failed to update brand.']);
+            return response()->json(['message' => 'Failed to update brand'], 500);
         }
     }
 

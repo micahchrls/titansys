@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Brand } from '@/pages/brands';
+import { Brand } from '@/types/index';
 import { Pencil, Plus, Trash } from 'lucide-react';
 import DataTable from '@/components/datatable';
 import { SearchFilter } from "@/components/search-filter";
@@ -9,7 +9,8 @@ import { router } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDebounce } from "@/hooks/use-debounce";
 import { BrandFormDialog } from '@/components/brands/brand-form-dialog';
-import { DeleteBrandDialog } from '@/components/brands/delete-brand-dialog';
+import { BrandEdit } from '@/components/brands/brand-edit';
+import { BrandDelete } from '@/components/brands/brand-delete';
 import { Toaster } from 'sonner';
 
 interface BrandsIndexProps {
@@ -34,24 +35,24 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [formDialogOpen, setFormDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [selectedBrand, setSelectedBrand] = useState<Brand | undefined>();
+    const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
     
     const handleSearch = useCallback((value: string) => {
         setSearchTerm(value);
     }, []);
 
     const handleEdit = (brand: Brand) => {
-        setSelectedBrand(brand);
-        setFormDialogOpen(true);
+        setSelectedBrandId(brand.id);
+        setEditDialogOpen(true);
     };
 
     const handleDelete = (brand: Brand) => {
-        setSelectedBrand(brand);
+        setSelectedBrandId(brand.id);
         setDeleteDialogOpen(true);
     };
 
-    // Handle the debounced search term
     useEffect(() => {
         if (debouncedSearch === filters?.search) return;
         
@@ -72,17 +73,17 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
     }, [debouncedSearch, filters?.search]);
 
     const columns = [
-        { key: 'name', header: 'Name' },
-        { key: 'description', header: 'Description' },
+        { key: 'name' as keyof Brand, header: 'Name' },
+        { key: 'description' as keyof Brand, header: 'Description' },
         {
-            key: 'actions',
+            key: 'actions' as keyof Brand,
             header: 'Actions',
-            render: (brand: Brand) => (
+            render: (_, row: Brand) => (
                 <div className="text-right space-x-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(brand)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
                         <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(brand)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row)}>
                         <Trash className="h-4 w-4" />
                     </Button>
                 </div>
@@ -112,14 +113,22 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
 
             <BrandFormDialog
                 open={formDialogOpen}
-                onOpenChange={(open) => {
-                    setFormDialogOpen(open);
-                    if (!open) setSelectedBrand(undefined);
-                }}
-                brand={selectedBrand}
+                onOpenChange={setFormDialogOpen}
             />
 
-        
+            <BrandEdit
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                brands={brands.data}
+                selectedBrandId={selectedBrandId}
+            />
+
+            <BrandDelete
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                brands={brands.data}
+                selectedBrandId={selectedBrandId}
+            />
 
             <Toaster />
         </>
