@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { BrandsList } from '@/components/brands/brands-list';
+import BrandsList from '@/components/brands/brands-list';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -24,7 +24,7 @@ export default function Brands() {
                         </p>
                     </div>
                 </div>
-                {/* <BrandsList /> */}
+                <BrandsList />
             </div>
         </AppLayout>    
     );
