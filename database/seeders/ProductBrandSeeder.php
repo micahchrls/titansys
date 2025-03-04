@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Product\ProductBrand;
 
 class ProductBrandSeeder extends Seeder
 {
@@ -12,6 +12,14 @@ class ProductBrandSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        $carBrands = [
+            'Toyota', 'Honda', 'Ford', 'Chevrolet', 'BMW',
+            'Mercedes-Benz', 'Audi', 'Volkswagen', 'Nissan', 'Hyundai',
+            'Kia', 'Mazda', 'Subaru', 'Lexus', 'Volvo'
+        ];
+
+        foreach ($carBrands as $brand) {
+            ProductBrand::create(['name' => $brand]);
+        }
     }
 }

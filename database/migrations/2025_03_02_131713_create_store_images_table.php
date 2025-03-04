@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('store_images', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('store_id'); // Ensure the column exists before the foreign key constraint
             $table->foreign('store_id')->references('id')->on('stores')->onDelete('cascade');
             $table->string('file_name', 191);
             $table->text('file_path');

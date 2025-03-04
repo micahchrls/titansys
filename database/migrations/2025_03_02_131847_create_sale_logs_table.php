@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('sale_logs', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->unsignedBigInteger('sale_id');
             $table->foreign('sale_id')->references('id')->on('sales')->onDelete('cascade');
             $table->enum('action_type', ['sale_completed', 'sale_canceled', 'sale_refunded'])->notNullable();
             $table->text('description')->nullable();
