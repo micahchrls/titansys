@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product\ProductBrand;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ProductBrandController extends Controller
 {
@@ -12,7 +13,17 @@ class ProductBrandController extends Controller
      */
     public function index()
     {
-        //
+        try {
+            if (auth()->check()) {
+                $brands = ProductBrand::all();
+                return Inertia::render('Products/Brands/Index', [
+                    'brands' => $brands,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error fetching product brands: ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred while fetching product brands'], 500);
+        }
     }
 
     /**

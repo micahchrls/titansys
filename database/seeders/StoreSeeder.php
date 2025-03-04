@@ -15,18 +15,21 @@ class StoreSeeder extends Seeder
         $stores = [
             [
                 'name' => 'Main Street Auto',
-                'address' => '123 Main St, Anytown, USA',
-                'phone' => '555-123-4567',
+                'location_address' => '123 Main St, Anytown, USA',
+                'contact_number' => '555-123-4567',
+                'email' => 'info@mainstreetauto.com',
             ],
             [
                 'name' => 'Downtown Car Parts',
-                'address' => '456 Oak Ave, Metropolis, USA',
-                'phone' => '555-987-6543',
+                'location_address' => '456 Oak Ave, Metropolis, USA',
+                'contact_number' => '555-987-6543',
+                'email' => 'sales@downtowncarparts.com',
             ],
             [
                 'name' => 'Suburban Auto Supply',
-                'address' => '789 Elm Rd, Smallville, USA',
-                'phone' => '555-456-7890',
+                'location_address' => '789 Elm Rd, Smallville, USA',
+                'contact_number' => '555-456-7890',
+                'email' => 'support@suburbanauto.com',
             ],
         ];
 

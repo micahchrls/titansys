@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Boxes, Folder, LayoutGrid, Store, TrendingUp, Layers, Tag, Users } from 'lucide-react';
+import { BookOpen, Boxes, Folder, LayoutGrid, Store, TrendingUp, Layers, Tag, Users, Truck } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -27,17 +27,17 @@ const mainNavItems: NavItem[] = [
 
 const mainNavItemsManage: NavItem[] = [
     {
-        title: 'Manage Store',
+        title: 'Manage Stores',
         url: '/stores',
         icon: Store,
     },
     {
-        title: 'Manage Category',
+        title: 'Manage Categories',
         url: '/categories',
         icon: Layers, // Represents categorized items
     },
     {
-        title: 'Manage Brand',
+        title: 'Manage Brands',
         url: '/brands',
         icon: Tag, // Represents registered brands
     },
@@ -45,6 +45,11 @@ const mainNavItemsManage: NavItem[] = [
         title: 'Manage Users',
         url: '/users',
         icon: Users, // Represents registered brands
+    },
+    {
+        title: 'Manage Suppliers',
+        url: '/suppliers',
+        icon: Truck, // Represents registered brands
     },
 ];
 

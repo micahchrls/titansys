@@ -23,6 +23,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('stores', function () {
         return Inertia::render('stores');
     })->name('stores');
+
+    Route::get('suppliers', function () {
+        return Inertia::render('suppliers');
+    })->name('suppliers');
+
+    Route::get('categories', function () {
+        return Inertia::render('categories');
+    })->name('categories');
+
+    Route::get('brands', function () {
+        return Inertia::render('brands');
+    })->name('brands');
+
+    Route::get('users', function () {
+        return Inertia::render('users');
+    })->name('users');
 });
 
 require __DIR__.'/settings.php';
