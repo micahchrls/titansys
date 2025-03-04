@@ -37,20 +37,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('brands', function () {
         return Inertia::render('brands');
     })->name('brands');
-    
-
-     // BRand routes here
-     Route::get('/brands', [ProductBrandController::class, 'index'])->name('brands.index');
-     Route::post('/brands', [ProductBrandController::class, 'store'])->name('brands.store');
-     Route::put('/brands/{brand}', [ProductBrandController::class, 'update'])->name('brands.update');
-     Route::delete('/brands/{brand}', [ProductBrandController::class, 'destroy'])->name('brands.destroy');
-     Route::get('/brands/create', [ProductBrandController::class, 'create'])->name('brands.create');
-     Route::get('/brands/edit/{brand}', [ProductBrandController::class, 'edit'])->name('brands.edit');
 
     Route::get('users', function () {
         return Inertia::render('users');
     })->name('users');
+
+
+    // Brand routes here
+    Route::get('/brands', [ProductBrandController::class, 'index'])->name('brands.index');
+    Route::post('/brands', [ProductBrandController::class, 'store'])->name('brands.store');
+    Route::put('/brands/{brand}', [ProductBrandController::class, 'update'])->name('brands.update');
+    Route::delete('/brands/{brand}', [ProductBrandController::class, 'destroy'])->name('brands.destroy');
+    Route::get('/brands/create', [ProductBrandController::class, 'create'])->name('brands.create');
+    Route::get('/brands/edit/{brand}', [ProductBrandController::class, 'edit'])->name('brands.edit');
 });
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
+require __DIR__ . '/settings.php';
+require __DIR__ . '/auth.php';
