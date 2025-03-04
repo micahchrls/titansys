@@ -4,23 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Models\Product\ProductCategory;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ProductCategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-    }
+        try {
+            $query = ProductCategory::query();
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $categories = $query->latest()->paginate(10);
+
+            return Inertia::render('categories', [
+                'categories' => $categories,
+                'filters' => request()->only(['search'])
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching categories: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to fetch categories.');
+        }
     }
 
     /**
@@ -28,23 +43,19 @@ class ProductCategoryController extends Controller
      */
     public function store(Request $request)
     {
-        //
-    }
+        try {
+            $validated = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ])->validate();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(ProductCategory $productCategory)
-    {
-        //
-    }
+            ProductCategory::create($validated);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ProductCategory $productCategory)
-    {
-        //
+            return redirect()->back();
+        } catch (\Exception $e) {
+            Log::error('Error storing category: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to store category.');
+        }
     }
 
     /**
@@ -52,7 +63,25 @@ class ProductCategoryController extends Controller
      */
     public function update(Request $request, ProductCategory $productCategory)
     {
-        //
+        try {
+            $validated = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ])->validate();
+
+            $productCategory->name = $validated['name'];
+            $productCategory->description = $validated['description'];
+
+            if ($productCategory->isDirty()) {
+                $productCategory->save();
+                return redirect()->back();
+            } else {
+                return redirect()->back();
+            }
+        } catch (\Exception $e) {
+            Log::error('Error updating category: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to update category.');
+        }
     }
 
     /**
@@ -60,6 +89,12 @@ class ProductCategoryController extends Controller
      */
     public function destroy(ProductCategory $productCategory)
     {
-        //
+        try {
+            $productCategory->delete();
+            return redirect()->back();
+        } catch (\Exception $e) {
+            Log::error('Error deleting category: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete category.');
+        }
     }
 }

@@ -50,7 +50,7 @@ class ProductBrandController extends Controller
                 'description' => 'nullable|string'
             ])->validate();
 
-            $brand = ProductBrand::create($validated);
+            ProductBrand::create($validated);
 
             return redirect()->back();
         } catch (\Exception $e) {
