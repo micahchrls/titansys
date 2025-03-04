@@ -1,8 +1,8 @@
-
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import BrandsList from '@/components/brands/brands-list';
+import BrandsIndex from '@/components/brands/brands-index';
+import { usePage } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,7 +11,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     }
 ];
 
+export interface Brand {
+    id: number;
+    title: string;
+    description: string;
+}
+
 export default function Brands() {
+    const { brands } = usePage<{ brands: Brand[] }>().props;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Brands" />
@@ -24,7 +32,7 @@ export default function Brands() {
                         </p>
                     </div>
                 </div>
-                <BrandsList />
+                <BrandsIndex brands={brands} />
             </div>
         </AppLayout>    
     );

@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\Product\ProductBrand;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Product\ProductBrandController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -35,6 +37,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('brands', function () {
         return Inertia::render('brands');
     })->name('brands');
+    
+
+     // BRand routes here
+     Route::get('/brands', [ProductBrandController::class, 'index'])->name('brands.index');
+     Route::post('/brands', [ProductBrandController::class, 'store'])->name('brands.store');
+     Route::put('/brands/{task}', [ProductBrandController::class, 'update'])->name('brands.update');
+     Route::delete('/brands/{task}', [ProductBrandController::class, 'destroy'])->name('brands.destroy');
+     Route::get('/brands/create', [ProductBrandController::class, 'create'])->name('brands.create');
+     Route::get('/brands/edit/{task}', [ProductBrandController::class, 'edit'])->name('brands.edit');
 
     Route::get('users', function () {
         return Inertia::render('users');

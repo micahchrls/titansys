@@ -1,37 +1,42 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Product;
 
+use App\Http\Controllers\Controller;
 use App\Models\Product\ProductBrand;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ProductBrandController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            if (auth()->check()) {
-                $brands = ProductBrand::all();
-                return Inertia::render('Products/Brands/Index', [
-                    'brands' => $brands,
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Error fetching product brands: ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred while fetching product brands'], 500);
-        }
-    }
+            $query = ProductBrand::query();
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $brands = $query->latest()->paginate(10);
+            
+            return Inertia::render('brands', [
+                'brands' => $brands,
+                'filters' => $request->only(['search'])
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching brands: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to fetch brands.');
+        }
     }
 
     /**
@@ -39,38 +44,52 @@ class ProductBrandController extends Controller
      */
     public function store(Request $request)
     {
-        //
-    }
+        try {
+            $validated = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ])->validate();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(ProductBrand $productBrand)
-    {
-        //
-    }
+            $brand = ProductBrand::create($validated);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ProductBrand $productBrand)
-    {
-        //
+            return redirect()->back()->with('success', 'Brand created successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error creating brand: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to create brand.');
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ProductBrand $productBrand)
+    public function update(Request $request, ProductBrand $brand)
     {
-        //
+        try {
+            $validated = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ])->validate();
+
+            $brand->update($validated);
+
+            return redirect()->back()->with('success', 'Brand updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating brand: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to update brand.');
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ProductBrand $productBrand)
+    public function destroy(ProductBrand $brand)
     {
-        //
+        try {
+            $brand->delete();
+            return redirect()->back()->with('success', 'Brand deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error deleting brand: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete brand.');
+        }
     }
 }
