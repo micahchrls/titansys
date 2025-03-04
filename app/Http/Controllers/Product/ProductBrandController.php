@@ -46,16 +46,16 @@ class ProductBrandController extends Controller
     {
         try {
             $validated = Validator::make($request->all(), [
-                'title' => 'required|string|max:255',
+                'name' => 'required|string|max:255',
                 'description' => 'nullable|string'
             ])->validate();
 
             $brand = ProductBrand::create($validated);
 
-            return redirect()->back()->with('success', 'Brand created successfully.');
+            return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error creating brand: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to create brand.');
+            return redirect()->back()->withErrors(['error' => 'Failed to create brand.']);
         }
     }
 
@@ -66,16 +66,16 @@ class ProductBrandController extends Controller
     {
         try {
             $validated = Validator::make($request->all(), [
-                'title' => 'required|string|max:255',
+                'name' => 'required|string|max:255',
                 'description' => 'nullable|string'
             ])->validate();
 
             $brand->update($validated);
 
-            return redirect()->back()->with('success', 'Brand updated successfully.');
+            return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error updating brand: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update brand.');
+            return redirect()->back()->withErrors(['error' => 'Failed to update brand.']);
         }
     }
 
@@ -86,10 +86,10 @@ class ProductBrandController extends Controller
     {
         try {
             $brand->delete();
-            return redirect()->back()->with('success', 'Brand deleted successfully.');
+            return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error deleting brand: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to delete brand.');
+            return redirect()->back()->withErrors(['error' => 'Failed to delete brand.']);
         }
     }
 }
