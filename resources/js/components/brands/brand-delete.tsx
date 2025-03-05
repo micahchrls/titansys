@@ -47,7 +47,8 @@ export function BrandDelete({ open, onOpenChange, brands, selectedBrandId }: Bra
                 <DialogHeader>
                     <DialogTitle>Delete Brand</DialogTitle>
                     <DialogDescription>
-                        Are you sure you want to delete {selectedBrand?.name}? This action cannot be undone.
+                        This action cannot be undone. This will permanently delete the brand{" "}
+                        <strong>{selectedBrand?.name}</strong> and remove the data from our servers.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
