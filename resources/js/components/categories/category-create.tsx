@@ -23,16 +23,24 @@ import {
 import { Category } from "@/types";
 
 interface CategoryCreateProps {
-    showModal: boolean;
-    setShowModal: (show: boolean) => void;
+    showModal?: boolean;
+    setShowModal?: (show: boolean) => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
     parentId?: number | null;
 }
 
 export default function CategoryCreate({ 
     showModal, 
     setShowModal,
+    open,
+    onOpenChange,
     parentId = null 
 }: CategoryCreateProps) {
+    // Use either the showModal/setShowModal or open/onOpenChange props
+    const isOpen = showModal !== undefined ? showModal : open;
+    const setIsOpen = setShowModal || onOpenChange;
+    
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,29 +51,36 @@ export default function CategoryCreate({
 
     // Fetch categories for parent selection
     useEffect(() => {
-        if (showModal) {
+        if (isOpen) {
             // Only fetch if we're not already specifying a parent
             if (parentId === null) {
+                // Use the API endpoint to fetch categories
                 fetch('/api/categories')
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         setCategories(data);
                     })
                     .catch(error => {
                         console.error('Error fetching categories:', error);
+                        toast.error("Failed to load categories");
                     });
             }
         }
-    }, [showModal, parentId]);
+    }, [isOpen, parentId]);
 
     // Reset form when dialog opens
     useEffect(() => {
-        if (showModal) {
+        if (isOpen) {
             setName("");
             setDescription("");
             setSelectedParentId(parentId ? String(parentId) : null);
         }
-    }, [showModal, parentId]);
+    }, [isOpen, parentId]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -82,7 +97,7 @@ export default function CategoryCreate({
             formData,
             {
                 onSuccess: () => {
-                    setShowModal(false);
+                    if (setIsOpen) setIsOpen(false);
                     setName("");
                     setDescription("");
                     setSelectedParentId(null);
@@ -99,7 +114,7 @@ export default function CategoryCreate({
     };
 
     return (
-        <Dialog open={showModal} onOpenChange={setShowModal}>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>

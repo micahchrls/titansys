@@ -71,6 +71,20 @@ class ProductCategoryController extends Controller
             return redirect()->back()->with('error', 'Failed to fetch categories.');
         }
     }
+    
+    /**
+     * Get all categories for API use (used in dropdowns)
+     */
+    public function getCategories()
+    {
+        try {
+            $categories = ProductCategory::with('children')->whereNull('parent_id')->get();
+            return response()->json($categories);
+        } catch (\Exception $e) {
+            Log::error('Error fetching categories for API: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch categories'], 500);
+        }
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -83,6 +97,17 @@ class ProductCategoryController extends Controller
                 'description' => 'nullable|string',
                 'parent_id' => 'nullable|exists:product_categories,id'
             ])->validate();
+
+            // Check for circular references
+            if (!empty($validated['parent_id'])) {
+                $parentId = $validated['parent_id'];
+                $parent = ProductCategory::find($parentId);
+                
+                // Ensure the parent exists
+                if (!$parent) {
+                    return redirect()->back()->with('error', 'Parent category not found.');
+                }
+            }
 
             ProductCategory::create($validated);
 
@@ -101,18 +126,37 @@ class ProductCategoryController extends Controller
         try {
             $validated = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
-                'description' => 'nullable|string'
+                'description' => 'nullable|string',
+                'parent_id' => 'nullable|exists:product_categories,id'
             ])->validate();
+
+            // Check for circular references if parent_id is provided
+            if (isset($validated['parent_id']) && $validated['parent_id'] !== null) {
+                // Cannot set parent to self
+                if ($validated['parent_id'] == $productCategory->id) {
+                    return redirect()->back()->with('error', 'A category cannot be its own parent.');
+                }
+                
+                // Cannot set parent to any of its descendants
+                $descendantIds = $this->getAllDescendantIds($productCategory->id);
+                if (in_array($validated['parent_id'], $descendantIds)) {
+                    return redirect()->back()->with('error', 'Cannot set a descendant as parent (circular reference).');
+                }
+            }
 
             $productCategory->name = $validated['name'];
             $productCategory->description = $validated['description'];
+            
+            // Only update parent_id if it's provided in the request
+            if (isset($validated['parent_id'])) {
+                $productCategory->parent_id = $validated['parent_id'];
+            }
 
             if ($productCategory->isDirty()) {
                 $productCategory->save();
-                return redirect()->back();
-            } else {
-                return redirect()->back();
             }
+            
+            return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error updating category: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to update category.');
@@ -125,11 +169,32 @@ class ProductCategoryController extends Controller
     public function destroy(ProductCategory $productCategory)
     {
         try {
+            // Check if category has children
+            if ($productCategory->children()->count() > 0) {
+                return redirect()->back()->with('error', 'Cannot delete a category with subcategories. Delete the subcategories first.');
+            }
+            
             $productCategory->delete();
             return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error deleting category: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to delete category.');
         }
+    }
+    
+    /**
+     * Get all descendant IDs for a category
+     */
+    private function getAllDescendantIds($categoryId)
+    {
+        $descendantIds = [];
+        $children = ProductCategory::where('parent_id', $categoryId)->get();
+        
+        foreach ($children as $child) {
+            $descendantIds[] = $child->id;
+            $descendantIds = array_merge($descendantIds, $this->getAllDescendantIds($child->id));
+        }
+        
+        return $descendantIds;
     }
 }

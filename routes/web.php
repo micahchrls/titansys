@@ -30,22 +30,6 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('stores');
     })->name('stores');
 
-    Route::get('suppliers', function () {
-        return Inertia::render('suppliers');
-    })->name('suppliers');
-
-    Route::get('categories', function () {
-        return Inertia::render('categories');
-    })->name('categories');
-
-    Route::get('brands', function () {
-        return Inertia::render('brands');
-    })->name('brands');
-
-    Route::get('users', function () {
-        return Inertia::render('users');
-    })->name('users');
-
     // Supplier routes here
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
     Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
@@ -62,13 +46,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/brands/create', [ProductBrandController::class, 'create'])->name('brands.create');
     Route::get('/brands/edit/{brand}', [ProductBrandController::class, 'edit'])->name('brands.edit');
 
-    // Category
+    // Category routes
     Route::get('/categories', [ProductCategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [ProductCategoryController::class, 'store'])->name('categories.store');
-    Route::put('/categories/{category}', [ProductCategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy'])->name('categories.destroy');
-    Route::get('/categories/create', [ProductCategoryController::class, 'create'])->name('categories.create');
-    Route::get('/categories/edit/{category}', [ProductCategoryController::class, 'edit'])->name('categories.edit');
+    Route::put('/categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('categories.destroy');
+    
+    // API route for categories (used by the dropdown)
+    Route::get('/api/categories', [ProductCategoryController::class, 'getCategories'])->name('api.categories');
 });
 
 require __DIR__ . '/settings.php';
