@@ -68,3 +68,14 @@ export interface Supplier {
     updated_at: string;
     [key: string]: unknown;
 }
+
+export interface Category {
+    id: number;
+    name: string;
+    description: string;
+    parent_id: number | null;
+    children?: Category[];
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}

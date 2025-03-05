@@ -5,9 +5,13 @@ import { router } from '@inertiajs/react';
 import { Pencil, Plus, Trash } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { SearchFilter } from '@/components/search-filter';
-import DataTable from '@/components/datatable';
-import DataTablePagination from '@/components/pagination';
+import { DataTable } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { SupplierFormDialog } from '@/components/suppliers/supplier-form-dialog';
+import { SupplierEdit } from '@/components/suppliers/supplier-edit';
+import { SupplierDelete } from '@/components/suppliers/supplier-delete';
+import { Toaster } from 'sonner';
 
 interface SuppliersIndexProps {
     suppliers: {
@@ -68,22 +72,42 @@ export default function SuppliersIndex({ suppliers, filters = {} }: SuppliersInd
         });
     }, [debouncedSearch, filters?.search]);
 
-    const columns = [
-        { key: 'name' as keyof Supplier, header: 'Name' },
-        { key: 'description' as keyof Supplier, header: 'Description' },
+    const columns: ColumnDef<Supplier>[] = [
         {
-            key: 'actions' as keyof Supplier,
-            header: 'Actions',
-            render: (_, row: Supplier) => (
-                <div className="space-x-2 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row)}>
-                        <Trash className="h-4 w-4" />
-                    </Button>
-                </div>
-            ),
+            accessorKey: 'name',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+            enableSorting: true,
+        },
+        {
+            accessorKey: 'contact_name',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Contact Name" />,
+            enableSorting: true,
+        },
+        {
+            accessorKey: 'phone',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
+            enableSorting: true,
+        },
+        {
+            accessorKey: 'email',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+            enableSorting: true,
+        },
+        {
+            id: 'actions',
+            cell: ({ row }) => {
+                const supplier = row.original;
+                return (
+                    <div className="space-x-2 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(supplier)}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(supplier)}>
+                            <Trash className="h-4 w-4" />
+                        </Button>
+                    </div>
+                );
+            },
         },
     ];
 
@@ -97,11 +121,37 @@ export default function SuppliersIndex({ suppliers, filters = {} }: SuppliersInd
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    <SearchFilter value={searchTerm} onChange={handleSearch} placeholder="Search suppliers..." />
-                    {/* <DataTable data={suppliers.data} columns={columns} />
-                    <DataTablePagination data={suppliers} /> */}
+                    <DataTable 
+                        columns={columns} 
+                        data={suppliers.data} 
+                        pagination={suppliers}
+                        searchKey="name"
+                        searchValue={searchTerm}
+                        onSearchChange={handleSearch}
+                    />
                 </CardContent>
             </Card>
+
+            <SupplierFormDialog
+                open={formDialogOpen}
+                onOpenChange={setFormDialogOpen}
+            />
+
+            <SupplierEdit
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                suppliers={suppliers.data}
+                selectedSupplierId={selectedSupplierId}
+            />
+
+            <SupplierDelete
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                suppliers={suppliers.data}
+                selectedSupplierId={selectedSupplierId}
+            />
+
+            <Toaster />
         </>
     );
 }
