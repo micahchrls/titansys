@@ -15,7 +15,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Inventory',
-        url: '/inventory',
+        url: '/inventories',
         icon: Boxes,
     },
     {
