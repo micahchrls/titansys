@@ -21,6 +21,7 @@ class ProductCategoryController extends Controller
             if ($search) {
                 $search = urldecode($search);
             }
+
             
             // Start with a base query
             $query = ProductCategory::with('children');
@@ -61,10 +62,17 @@ class ProductCategoryController extends Controller
             }
 
             $categories = $query->latest()->paginate(10);
+            $parentCategories = [];
+            
+            // Only load parent categories if we're displaying the create form
+            if ($request->has('showCreateForm')) {
+                $parentCategories = ProductCategory::whereNull('parent_id')->get();
+            }
 
             return Inertia::render('categories', [
                 'categories' => $categories,
-                'filters' => request()->only(['search'])
+                'filters' => request()->only(['search']),
+                'parentCategories' => $parentCategories
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching categories: ' . $e->getMessage());
@@ -169,16 +177,32 @@ class ProductCategoryController extends Controller
     public function destroy(ProductCategory $productCategory)
     {
         try {
-            // Check if category has children
-            if ($productCategory->children()->count() > 0) {
-                return redirect()->back()->with('error', 'Cannot delete a category with subcategories. Delete the subcategories first.');
-            }
+            // Delete all subcategories recursively
+            $this->deleteSubcategories($productCategory);
             
+            // Then delete the category itself
             $productCategory->delete();
             return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error deleting category: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to delete category.');
+        }
+    }
+    
+    /**
+     * Recursively delete subcategories
+     */
+    private function deleteSubcategories(ProductCategory $category)
+    {
+        // Get all direct children
+        $children = ProductCategory::where('parent_id', $category->id)->get();
+        
+        foreach ($children as $child) {
+            // Recursively delete this child's children
+            $this->deleteSubcategories($child);
+            
+            // Delete the child
+            $child->delete();
         }
     }
     

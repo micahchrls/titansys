@@ -11,9 +11,10 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { Category } from '@/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Toaster } from 'sonner';
-import CategoryCreate from './category-create';
-import { CategoryDelete } from './category-delete';
-import { CategoryEdit } from './category-edit';
+import { CategoriesFormDialog } from '@/components/categories/categories-form-dialog';
+import { CategorySubcategoryDialog } from '@/components/categories/category-subcategory-dialog';
+import { CategoryDelete } from '@/components/categories/category-delete';
+import { CategoryEdit } from '@/components/categories/category-edit';
 
 interface CategoriesIndexProps {
     categories: {
@@ -38,13 +39,34 @@ interface CategoriesIndexProps {
 export default function CategoriesIndex({ categories, filters = {} }: CategoriesIndexProps) {
     const [searchTerm, setSearchTerm] = useState(filters?.search ? decodeURIComponent(filters.search) : '');
     const debouncedSearch = useDebounce(searchTerm, 300);
-    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [formDialogOpen, setFormDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
     const [processedData, setProcessedData] = useState<Category[]>([]);
+
+    // Store expanded categories in session storage to persist state after form submissions
+    useEffect(() => {
+        // On initial load, try to get saved expanded categories
+        const savedExpandedState = sessionStorage.getItem('expandedCategories');
+        if (savedExpandedState) {
+            try {
+                const savedIds = JSON.parse(savedExpandedState);
+                setExpandedCategories(new Set(savedIds));
+            } catch (e) {
+                console.error('Error parsing saved expanded categories', e);
+            }
+        }
+    }, []);
+
+    // Save expanded categories to session storage when they change
+    useEffect(() => {
+        if (expandedCategories.size > 0) {
+            sessionStorage.setItem('expandedCategories', JSON.stringify(Array.from(expandedCategories)));
+        }
+    }, [expandedCategories]);
 
     // Helper function to check if a string contains the search query
     const matchesSearch = (text: string | null | undefined) => {
@@ -189,41 +211,84 @@ export default function CategoriesIndex({ categories, filters = {} }: Categories
             header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
             cell: ({ row }) => {
                 const category = row.original;
-                const hasChildren = category.children && category.children.length > 0;
-                const isExpanded = expandedCategories.has(category.id) || category.isExpanded;
-                const isSubcategory = category.isSubcategory;
-                const nameMatches = matchesSearch(category.name);
                 
-                return (
-                    <div className={`flex items-center ${isSubcategory ? 'pl-8' : ''}`}>
-                        {hasChildren && !isSubcategory && (
+                // Only parent categories can be expanded
+                if (!category.isSubcategory && category.hasChildren) {
+                    return (
+                        <div className="flex items-center">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="mr-2 h-8 w-8 p-0"
-                                onClick={() => toggleExpand(category.id)}
+                                className="p-0 h-7 w-7 mr-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleExpand(category.id);
+                                }}
                             >
-                                {isExpanded ? (
-                                    <span className="h-4 w-4">▼</span>
+                                {category.isExpanded ? (
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="h-4 w-4"
+                                    >
+                                        <path d="M18 15l-6-6-6 6" />
+                                    </svg>
                                 ) : (
-                                    <span className="h-4 w-4">▶</span>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="h-4 w-4"
+                                    >
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
                                 )}
                             </Button>
-                        )}
-                        {nameMatches && searchTerm ? (
-                            highlightSearchMatch(category.name)
-                        ) : (
-                            category.name
-                        )}
-                        {hasChildren && !isSubcategory && (
-                            <Badge variant="outline" className="ml-2">
-                                {category.children.length} subcategories
-                            </Badge>
-                        )}
+                            <span className={category.matchesSearch ? 'font-medium' : ''}>
+                                {searchTerm ? highlightSearchMatch(category.name) : category.name}
+                            </span>
+                            {category.children && category.children.length > 0 && (
+                                <Badge variant="outline" className="ml-2">
+                                    {category.children.length} subcategories
+                                </Badge>
+                            )}
+                        </div>
+                    );
+                }
+                
+                // Subcategories get indentation
+                if (category.isSubcategory) {
+                    return (
+                        <div className="flex items-center pl-8">
+                            <span className={category.matchesSearch ? 'font-medium' : ''}>
+                                {searchTerm ? highlightSearchMatch(category.name) : category.name}
+                            </span>
+                        </div>
+                    );
+                }
+                
+                // Regular category with no children
+                return (
+                    <div className="flex items-center">
+                        <span className={category.matchesSearch ? 'font-medium' : ''}>
+                            {searchTerm ? highlightSearchMatch(category.name) : category.name}
+                        </span>
                     </div>
                 );
             },
-            enableSorting: true,
         },
         {
             accessorKey: 'description',
@@ -268,12 +333,12 @@ export default function CategoriesIndex({ categories, filters = {} }: Categories
                             </Button>
                         )}
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(category)}>
-                            <span className="sr-only">Edit</span>
                             <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDelete(category)}>
-                            <span className="sr-only">Delete</span>
                             <Trash className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
                         </Button>
                     </div>
                 );
@@ -302,7 +367,7 @@ export default function CategoriesIndex({ categories, filters = {} }: Categories
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-xl font-bold">Categories</CardTitle>
-                    <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+                    <Button size="sm" onClick={() => setFormDialogOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Category
                     </Button>
@@ -318,28 +383,32 @@ export default function CategoriesIndex({ categories, filters = {} }: Categories
                     />
                 </CardContent>
             </Card>
-
-            <CategoryCreate showModal={createDialogOpen} setShowModal={setCreateDialogOpen} />
-
-            <CategoryEdit
-                open={editDialogOpen}
-                onOpenChange={setEditDialogOpen}
-                categories={categories.data}
-                selectedCategoryId={selectedCategoryId}
+            
+            <CategoriesFormDialog 
+                open={formDialogOpen} 
+                onOpenChange={setFormDialogOpen}
             />
-
+            
+            <CategorySubcategoryDialog
+                open={subcategoryDialogOpen}
+                onOpenChange={setSubcategoryDialogOpen}
+                parentCategoryId={selectedCategoryId}
+            />
+            
             <CategoryDelete
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}
                 categories={categories.data}
                 selectedCategoryId={selectedCategoryId}
             />
-
-            {/* Subcategory creation dialog */}
-            {subcategoryDialogOpen && selectedCategoryId && (
-                <CategoryCreate showModal={subcategoryDialogOpen} setShowModal={setSubcategoryDialogOpen} parentId={selectedCategoryId} />
-            )}
-
+            
+            <CategoryEdit
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                categories={categories.data}
+                selectedCategoryId={selectedCategoryId}
+            />
+            
             <Toaster />
         </div>
     );

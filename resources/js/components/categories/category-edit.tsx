@@ -1,26 +1,26 @@
-import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Category } from "@/types";
-import { router } from "@inertiajs/react";
-import { FormEvent, useEffect, useState } from "react";
-import { toast } from "sonner";
-import { 
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue, 
-} from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Category } from '@/types/index';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import * as z from 'zod';
+
+const formSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().optional(),
+    parent_id: z
+        .string()
+        .nullable()
+        .optional()
+        .transform((val) => (val === '' || val === 'null' ? null : val)),
+});
 
 interface CategoryEditProps {
     open: boolean;
@@ -30,140 +30,165 @@ interface CategoryEditProps {
 }
 
 export function CategoryEdit({ open, onOpenChange, categories, selectedCategoryId }: CategoryEditProps) {
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-    const [availableParents, setAvailableParents] = useState<Category[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-
-    // Find the current category and set form values
-    useEffect(() => {
-        if (open && selectedCategoryId) {
-            const category = categories.find((c) => c.id === selectedCategoryId);
-            if (category) {
-                setName(category.name);
-                setDescription(category.description);
-                setSelectedParentId(category.parent_id ? String(category.parent_id) : null);
-                setSelectedCategory(category);
+    // Helper function to find a category (either parent or child) by ID
+    const getCategory = (id: number | null): Category | undefined => {
+        if (!id) return undefined;
+        
+        // Search in top level categories
+        for (const category of categories) {
+            if (category.id === id) {
+                return category;
             }
+            
+            // Search in subcategories if any
+            if (category.children && category.children.length > 0) {
+                const found = category.children.find(sub => sub.id === id);
+                if (found) return found;
+            }
+        }
+        
+        return undefined;
+    };
+    
+    const selectedCategory = getCategory(selectedCategoryId);
+    const [parentOptions, setParentOptions] = useState<Category[]>([]);
+    
+    // Load potential parent categories when dialog opens
+    useEffect(() => {
+        if (open) {
+            // Only include top-level categories that are not the selected category
+            // and not any of its children (to prevent circular references)
+            const validParents = categories.filter(category => 
+                category.id !== selectedCategoryId && 
+                !(selectedCategory?.children?.some(child => child.id === category.id))
+            );
+            setParentOptions(validParents);
         }
     }, [open, selectedCategoryId, categories]);
 
-    // Filter available parent categories (exclude self and descendants)
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: selectedCategory?.name || '',
+            description: selectedCategory?.description || '',
+            parent_id: selectedCategory?.parent_id ? String(selectedCategory.parent_id) : null,
+        },
+    });
+
+    // Reset form when dialog opens/closes or selected category changes
     useEffect(() => {
-        if (selectedCategory) {
-            // Get all descendants of the selected category
-            const getDescendantIds = (categoryId: number): number[] => {
-                const directChildren = categories.filter(c => c.parent_id === categoryId);
-                let descendants: number[] = directChildren.map(c => c.id);
-                
-                for (const child of directChildren) {
-                    descendants = [...descendants, ...getDescendantIds(child.id)];
-                }
-                
-                return descendants;
-            };
-            
-            const descendantIds = getDescendantIds(selectedCategory.id);
-            const selfAndDescendants = [selectedCategory.id, ...descendantIds];
-            
-            // Filter out self and descendants from available parents
-            const filtered = categories.filter(c => !selfAndDescendants.includes(c.id));
-            setAvailableParents(filtered);
-        }
-    }, [selectedCategory, categories]);
-
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-
-        router.put(
-            `/categories/${selectedCategoryId}`,
-            {
-                name,
-                description,
-                parent_id: selectedParentId ? parseInt(selectedParentId) : null
-            },
-            {
-                onSuccess: () => {
-                    onOpenChange(false);
-                    toast.success("Category updated successfully");
-                    setIsSubmitting(false);
-                },
-                onError: (errors) => {
-                    console.error(errors);
-                    toast.error("Failed to update category");
-                    setIsSubmitting(false);
-                },
+        if (selectedCategoryId !== null) {
+            const category = getCategory(selectedCategoryId);
+            if (category) {
+                form.reset({
+                    name: category.name,
+                    description: category.description || '',
+                    parent_id: category.parent_id ? String(category.parent_id) : null,
+                });
             }
-        );
-    };
+        }
+    }, [selectedCategoryId, open, categories]);
+
+    function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!selectedCategoryId) return;
+
+        router.put(route('categories.update', selectedCategoryId), values, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                onOpenChange(false);
+                toast.success('Category updated successfully');
+            },
+            onError: (errors) => {
+                if (errors.message) {
+                    toast.error(errors.message);
+                } else {
+                    toast.error('Failed to update category');
+                }
+            },
+        });
+    }
+
+    // Determine if this is a subcategory being edited
+    const isSubcategory = selectedCategory?.parent_id !== null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
-                <form onSubmit={handleSubmit}>
-                    <DialogHeader>
-                        <DialogTitle>Edit Category</DialogTitle>
-                        <DialogDescription>
-                            Make changes to the category here. Click save when you're done.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="parent" className="text-right">
-                                Parent Category
-                            </Label>
-                            <div className="col-span-3">
-                                <Select 
-                                    value={selectedParentId || ""} 
-                                    onValueChange={setSelectedParentId}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="None (Top-level category)" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">None (Top-level category)</SelectItem>
-                                        {availableParents.map((category) => (
-                                            <SelectItem key={category.id} value={String(category.id)}>
-                                                {category.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                                Name
-                            </Label>
-                            <Input
-                                id="name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="col-span-3"
-                                required
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <DialogHeader>
+                            <DialogTitle>Edit {isSubcategory ? 'Subcategory' : 'Category'}</DialogTitle>
+                            <DialogDescription>
+                                Make changes to this {isSubcategory ? 'subcategory' : 'category'}.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Enter category name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Enter category description" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="parent_id"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Parent Category</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value !== null ? String(field.value) : 'null'}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select parent category (optional)" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="null">None (Top-level category)</SelectItem>
+                                                {parentOptions.map((category) => (
+                                                    <SelectItem key={category.id} value={String(category.id)}>
+                                                        {category.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
                             />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="description" className="text-right">
-                                Description
-                            </Label>
-                            <Textarea
-                                id="description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                className="col-span-3"
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? "Saving..." : "Save changes"}
-                        </Button>
-                    </DialogFooter>
-                </form>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                Save Changes
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );

@@ -52,7 +52,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/categories', [ProductCategoryController::class, 'store'])->name('categories.store');
     Route::put('/categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('categories.destroy');
-    
+
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
