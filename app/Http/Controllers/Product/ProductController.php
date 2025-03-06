@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product\Product;
+use App\Http\Resources\ProductResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -25,7 +26,9 @@ class ProductController extends Controller
 
             $products = $query->latest()->paginate(10);
 
-            return Inertia::render('Products/Index', [
+            $products = ProductResource::collection($products);
+
+            return Inertia::render('products', [
                 'products' => $products,
                 'filters' => $request->only(['search'])
             ]);

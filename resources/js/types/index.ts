@@ -91,3 +91,20 @@ export interface User {
     created_at: string;
     updated_at: string;
 }
+
+export interface Inventory {
+    id: number;
+    product_id: number;
+    product_sku: string;
+    product_name: string;
+    product_price: number;
+    product_size: string;
+    product_category: string;
+    product_brand: string;
+    reorder_level: number;
+    last_restocked: string;
+    quantity: number;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}

@@ -45,6 +45,9 @@ export function DataTablePagination<TData>({
       );
     };
 
+    // Default per_page value if it's undefined
+    const perPage = pagination.per_page || 10;
+
     return (
       <div className="flex items-center justify-between px-2 mt-4">
         <div className="flex-1 text-sm text-muted-foreground">
@@ -54,7 +57,7 @@ export function DataTablePagination<TData>({
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Rows per page</p>
             <Select
-              value={pagination.per_page.toString()}
+              value={perPage.toString()}
               onValueChange={(value) => {
                 const params = new URLSearchParams(window.location.search);
                 params.set('per_page', value);
@@ -68,7 +71,7 @@ export function DataTablePagination<TData>({
               }}
             >
               <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue placeholder={pagination.per_page} />
+                <SelectValue placeholder={perPage} />
               </SelectTrigger>
               <SelectContent side="top">
                 {[10, 20, 30, 40, 50].map((pageSize) => (

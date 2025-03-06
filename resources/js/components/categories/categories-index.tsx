@@ -2,8 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { router } from '@inertiajs/react';
 import { Pencil, Plus, Trash } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';

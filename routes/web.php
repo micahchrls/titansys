@@ -7,6 +7,7 @@ use App\Http\Controllers\Product\ProductBrandController;
 use App\Http\Controllers\Product\ProductCategoryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\InventoryController;
 
 
 
@@ -19,10 +20,6 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
-    Route::get('inventory', function () {
-        return Inertia::render('inventory');
-    })->name('inventory');
-
     Route::get('sales', function () {
         return Inertia::render('sales');
     })->name('sales');
@@ -30,6 +27,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('stores', function () {
         return Inertia::render('stores');
     })->name('stores');
+
+    Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');
 
     // Supplier routes here
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
