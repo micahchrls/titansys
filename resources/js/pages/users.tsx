@@ -1,7 +1,8 @@
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { UsersList } from '@/components/users/users-list';
+import { User, type BreadcrumbItem } from '@/types';
+import { usePage } from '@inertiajs/react';
+import UsersIndex from '@/components/users/users-index';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,6 +12,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Users() {
+    const { users } = usePage<{ users: User[] }>().props;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Users" />
@@ -23,7 +26,7 @@ export default function Users() {
                         </p>
                     </div>
                 </div>
-                {/* <UsersList /> */}
+                <UsersIndex users={users} />
             </div>
         </AppLayout>
     );

@@ -79,3 +79,15 @@ export interface Category {
     updated_at: string;
     [key: string]: unknown;
 }
+
+export interface User {
+    id: number;
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    username: string;
+    email: string;
+    role: string;
+    created_at: string;
+    updated_at: string;
+}

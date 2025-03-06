@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Product\ProductBrandController;
 use App\Http\Controllers\Product\ProductCategoryController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\UserController;
 
 
 
@@ -52,8 +53,13 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('categories.destroy');
     
-    // API route for categories (used by the dropdown)
-    Route::get('/api/categories', [ProductCategoryController::class, 'getCategories'])->name('api.categories');
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::get('/users/edit/{user}', [UserController::class, 'edit'])->name('users.edit');
+
 });
 
 require __DIR__ . '/settings.php';

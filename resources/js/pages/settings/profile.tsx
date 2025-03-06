@@ -29,7 +29,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         last_name: auth.user.last_name,
         username: auth.user.username,
         email: auth.user.email,
-        role: auth.user.role_id || 'no_role',
+        role: auth.user.role || 'no_role',
     });
 
     const submit: FormEventHandler = (e) => {

@@ -44,9 +44,6 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         try {
@@ -60,12 +57,15 @@ class UserController extends Controller
                 'password' => 'required|string|min:8|confirmed',
             ])->validate();
 
+            // Hash the password
+            $validated['password'] = bcrypt($validated['password']);
+
             User::create($validated);
 
             return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error creating user: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Failed to create user.']);
+            return redirect()->back()->withErrors(['message' => 'Failed to create user: ' . $e->getMessage()]);
         }
     }
 
@@ -92,27 +92,32 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         try {
-            $validated = Validator::make($request->all(), [
+            $rules = [
                 'first_name' => 'required|string|max:255',
                 'middle_name' => 'nullable|string|max:255',
                 'last_name' => 'required|string|max:255',
-                'username' => 'required|string|max:255|unique:users',
-                'email' => 'required|email|max:255|unique:users',
+                'username' => 'required|string|max:255|unique:users,username,'.$user->id,
+                'email' => 'required|email|max:255|unique:users,email,'.$user->id,
                 'role' => 'required|string|max:255',
-                'password' => 'required|string|min:8|confirmed',
-            ])->validate();
+            ];
+
+            // Only validate password if it's provided
+            if ($request->filled('password')) {
+                $rules['password'] = 'required|string|min:8|confirmed';
+            }
+
+            $validated = Validator::make($request->all(), $rules)->validate();
+
+            // Remove password from validated data if it's not provided
+            if (!$request->filled('password')) {
+                unset($validated['password']);
+            }
 
             $user->update($validated);
-
-            if ($user->isDirty()) {
-                $user->save();
-                return redirect()->back();
-            } else {
-                return redirect()->back();
-            }
+            return redirect()->back();
         } catch(\Exception $e) {
             Log::error('Error updating user: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Failed to update user.']);
+            return redirect()->back()->withErrors(['message' => 'Failed to update user: ' . $e->getMessage()]);
         }
     }
 
@@ -127,7 +132,7 @@ class UserController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error deleting user: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Failed to delete user.']);
+            return redirect()->back()->withErrors(['message' => 'Failed to delete user: ' . $e->getMessage()]);
         }
     }
 }
