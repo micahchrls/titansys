@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('store_id')->references('id')->on('stores')->onDelete('cascade');
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->enum('transaction_type', ['purchase', 'sale', 'return', 'adjustment', 'transfer']);
+            $table->enum('transaction_type', ['purchase', 'sale', 'return', 'adjustment', 'transfer', 'add', 'remove']);
             $table->date('transaction_date');
             $table->decimal('transaction_amount', 10, 2);
             $table->timestamps();
