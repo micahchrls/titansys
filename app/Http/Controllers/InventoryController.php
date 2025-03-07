@@ -6,10 +6,12 @@ use App\Http\Resources\InventoryResource;
 use App\Models\Inventory;
 use App\Models\Product\Product;
 use App\Models\Product\ProductCategory;
+use App\Models\Product\ProductBrand;
 use App\Models\Product\ProductImage;
-use App\Models\StockLog;
-use App\Models\StockMovement;
-use App\Models\StockTransaction;
+use App\Models\Stock\StockLog;
+use App\Models\Stock\StockMovement;
+use App\Models\Stock\StockTransaction;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
@@ -36,10 +38,17 @@ class InventoryController extends Controller
             $inventories = $query->latest()->paginate(10);
             $inventories = InventoryResource::collection($inventories)->response()->getData(true);
 
-            Log::info($inventories);
+            // Get categories, brands, and suppliers for the form
+            $categories = ProductCategory::orderBy('name')->get();
+            $brands = ProductBrand::orderBy('name')->get();
+            $suppliers = Supplier::orderBy('name')->get();
+            
             return Inertia::render('inventories', [
                 'inventories' => $inventories,
-                'filters' => $request->only(['search'])
+                'filters' => $request->only(['search']),
+                'categories' => $categories,
+                'brands' => $brands,
+                'suppliers' => $suppliers
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching inventory: ' . $e->getMessage());
@@ -84,6 +93,8 @@ class InventoryController extends Controller
     public function store(Request $request)
     {
         try {
+            Log::info('Starting inventory creation process', ['request_data' => $request->all()]);
+            
             $validated = Validator::make($request->all(), [
                 'product_name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -97,29 +108,60 @@ class InventoryController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ])->validate();
 
-            return \DB::transaction(function () use ($validated, $request) {
+            Log::info('Validation passed', ['validated_data' => $validated]);
+            
+            // Start a database transaction
+            \DB::beginTransaction();
+            Log::info('Transaction started');
+            
+            try {
                 $user = auth()->user();
                 $storeId = $request->input('store_id', 1); // Get store ID from request or use default
                 
                 // Generate SKU and create product
                 $sku = $this->generateSku($validated['product_name'], $validated['product_category_id']);
+                Log::info('Generated SKU', ['sku' => $sku]);
+                
                 $product = $this->createProduct($validated, $sku);
+                Log::info('Product created', ['product_id' => $product->id, 'product' => $product->toArray()]);
                 
                 // Handle image upload if provided
                 if ($request->hasFile('image')) {
-                    $this->handleProductImage($product->id, $request->file('image'));
+                    $productImage = $this->handleProductImage($product->id, $request->file('image'));
+                    Log::info('Product image uploaded', ['image_id' => $productImage->id]);
                 }
                 
                 // Create inventory record
                 $inventory = $this->createInventory($product->id, $validated);
+                Log::info('Inventory created', ['inventory_id' => $inventory->id, 'inventory' => $inventory->toArray()]);
                 
                 // Record stock movement and transaction
                 $this->recordStockChanges($inventory->id, $user->id, $storeId, $validated['quantity'], $product);
+                Log::info('Stock changes recorded');
+                
+                // Commit the transaction
+                \DB::commit();
+                Log::info('Transaction committed successfully');
                 
                 return redirect()->route('inventories.index')->with('success', 'Product added to inventory successfully.');
-            });
+            } catch (\Exception $e) {
+                // Rollback the transaction if anything fails
+                \DB::rollBack();
+                Log::error('Error in transaction: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw $e;
+            }
         } catch (\Exception $e) {
-            Log::error('Error creating inventory: ' . $e->getMessage());
+            Log::error('Error creating inventory: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->back()->with('error', 'Failed to create inventory: ' . $e->getMessage());
         }
     }

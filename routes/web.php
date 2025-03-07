@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('stores');
 
     Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');
-    Route::get('/inventories', [InventoryController::class, 'store'])->name('inventories.store');
+    Route::post('/inventories', [InventoryController::class, 'store'])->name('inventories.store');
 
     // Supplier routes here
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');

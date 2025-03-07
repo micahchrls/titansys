@@ -9,10 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Plus, Trash } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
-// import { InventoryFormDialog } from "@/components/inventories/inventory-form-dialog";
-// import { InventoryDelete } from "@/components/inventories/inventory-delete";
-// import { InventoryEdit } from "@/components/inventories/inventory-edit";
-
+import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
 interface InventoriesIndexProps {
     inventories: {
         data: Inventory[];
@@ -31,9 +28,12 @@ interface InventoriesIndexProps {
     filters?: {
         search?: string;
     };
+    categories?: any[];
+    brands?: any[];
+    suppliers?: any[];
 }
 
-export default function InventoriesIndex({ inventories, filters = {} }: InventoriesIndexProps) {
+export default function InventoriesIndex({ inventories, filters = {}, categories, brands, suppliers }: InventoriesIndexProps) {
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -155,9 +155,15 @@ export default function InventoriesIndex({ inventories, filters = {} }: Inventor
             </Card>
 
             {/* Uncomment when components are implemented */}
-            {/* <InventoryFormDialog open={formDialogOpen} onOpenChange={setFormDialogOpen} />
+            <InventoriesFormDialog 
+                open={formDialogOpen} 
+                onOpenChange={setFormDialogOpen} 
+                categories={categories}
+                brands={brands}
+                suppliers={suppliers}
+            />
 
-            <InventoryEdit 
+            {/* <InventoryEdit 
                 open={editDialogOpen} 
                 onOpenChange={setEditDialogOpen} 
                 inventories={inventories.data} 
@@ -169,8 +175,7 @@ export default function InventoriesIndex({ inventories, filters = {} }: Inventor
                 onOpenChange={setDeleteDialogOpen} 
                 inventories={inventories.data} 
                 selectedInventoryId={selectedInventoryId} 
-            /> */}
-
+            /> * */}
             <Toaster />
         </div>
     );

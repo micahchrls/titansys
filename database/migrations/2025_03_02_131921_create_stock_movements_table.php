@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('stock_movements', function (Blueprint $table) {
             $table->id();
-            $table->foreign('inventory_id')->references('id')->on('inventories')->onDelete('cascade');
             $table->unsignedBigInteger('inventory_id');
+            $table->foreign('inventory_id')->references('id')->on('inventories')->onDelete('cascade');
             $table->decimal('quantity', 10, 2);
             $table->enum('movement_type', ['in', 'out']);
             $table->timestamps();

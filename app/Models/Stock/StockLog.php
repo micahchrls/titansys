@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Stock;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +26,7 @@ class StockLog extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'action_type' => 'enum',
+        'action_type' => 'string',
     ];
 
     

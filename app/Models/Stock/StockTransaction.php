@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Stock;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,5 +16,16 @@ class StockTransaction extends Model
         'transaction_type',
         'transaction_date',
         'transaction_amount',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'transaction_type' => 'string',
+        'transaction_date' => 'datetime',
+        'transaction_amount' => 'decimal:2',
     ];
 }

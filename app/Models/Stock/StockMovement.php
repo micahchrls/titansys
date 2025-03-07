@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Stock;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +24,7 @@ class StockMovement extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'movement_type' => 'enum',
+        'movement_type' => 'string',
     ];
 
 

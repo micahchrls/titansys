@@ -1,8 +1,8 @@
+import InventoriesIndex from '@/components/inventories/inventories-index';
 import { InventoryOverview } from '@/components/inventories/inventory-overview';
 import AppLayout from '@/layouts/app-layout';
-import { Head, usePage } from '@inertiajs/react';
 import { Inventory, type BreadcrumbItem } from '@/types';
-import InventoriesIndex from '@/components/inventories/inventories-index';
+import { Head } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,7 +11,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface PageProps {
+interface InventoriesProps {
     inventories: {
         data: Inventory[];
         meta: {
@@ -24,16 +24,17 @@ interface PageProps {
                 label: string;
                 active: boolean;
             }>;
-        }
+        };
     };
     filters?: {
         search?: string;
-    }
+    };
+    categories: any[];
+    brands: any[];
+    suppliers: any[];
 }
 
-export default function Inventories() {
-    const { inventories, filters } = usePage<PageProps>().props;
-    
+export default function Inventories({ inventories, filters, categories, brands, suppliers }: InventoriesProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inventory" />
@@ -41,13 +42,21 @@ export default function Inventories() {
                 <div className="flex items-center justify-between pb-6">
                     <div>
                         <h2 className="text-2xl font-semibold tracking-tight">Inventory Overview</h2>
-                        <p className="text-muted-foreground mt-1 text-sm">Monitor stock levels, manage product inventory, and track inventory movements.</p>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                            Monitor stock levels, manage product inventory, and track inventory movements.
+                        </p>
                     </div>
                 </div>
 
                 <InventoryOverview />
 
-                <InventoriesIndex inventories={inventories} filters={filters} />
+                <InventoriesIndex 
+                    inventories={inventories} 
+                    filters={filters} 
+                    categories={categories}
+                    brands={brands}
+                    suppliers={suppliers}
+                />
             </div>
         </AppLayout>
     );
