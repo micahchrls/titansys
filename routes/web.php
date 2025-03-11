@@ -30,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');
     Route::post('/inventories', [InventoryController::class, 'store'])->name('inventories.store');
+    Route::delete('/inventories/{inventory}', [InventoryController::class, 'destroy'])->name('inventories.destroy');
 
     // Supplier routes here
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');

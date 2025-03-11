@@ -20,11 +20,6 @@ class ProductImage extends Model
         'file_path',
         'file_extension',
         'file_size',
-        'is_primary',
-    ];
-
-    protected $casts = [
-        'is_primary' => 'boolean',
     ];
 
     /**
@@ -47,9 +42,7 @@ class ProductImage extends Model
         
         // If this is set as primary, reset other primary images for this product
         if ($isPrimary) {
-            self::where('product_id', $productId)
-                ->where('is_primary', true)
-                ->update(['is_primary' => false]);
+            self::where('product_id', $productId);
         }
         
         // Create the image record
@@ -59,7 +52,6 @@ class ProductImage extends Model
             'file_path' => $path,
             'file_extension' => $extension,
             'file_size' => $image->getSize(),
-            'is_primary' => $isPrimary,
         ]);
     }
 

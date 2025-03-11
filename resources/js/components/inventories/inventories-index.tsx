@@ -10,6 +10,7 @@ import { Pencil, Plus, Trash } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
 import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
+import InventoryDelete from "@/components/inventories/inventory-delete";
 interface InventoriesIndexProps {
     inventories: {
         data: Inventory[];
@@ -168,14 +169,14 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                 onOpenChange={setEditDialogOpen} 
                 inventories={inventories.data} 
                 selectedInventoryId={selectedInventoryId} 
-            />
+            /> */}
 
             <InventoryDelete 
                 open={deleteDialogOpen} 
                 onOpenChange={setDeleteDialogOpen} 
                 inventories={inventories.data} 
                 selectedInventoryId={selectedInventoryId} 
-            /> * */}
+            />
             <Toaster />
         </div>
     );

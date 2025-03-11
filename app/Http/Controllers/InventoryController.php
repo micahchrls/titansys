@@ -252,19 +252,31 @@ class InventoryController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Inventory $inventory)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, Inventory $inventory)
     {
-        //
+        try {
+            $validator = Validator::make($request->all(), [
+                'quantity' => 'required|integer|min:0',
+                'reorder_level' => 'required|integer|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+
+            $inventory->update([
+                'quantity' => $request->quantity,
+                'reorder_level' => $request->reorder_level,
+                'last_restocked' => $request->has('restocked') ? now() : $inventory->last_restocked,
+            ]);
+
+            return redirect()->route('inventories.index')->with('success', 'Inventory updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating inventory: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to update inventory.');
+        }
     }
 
     /**
@@ -272,6 +284,27 @@ class InventoryController extends Controller
      */
     public function destroy(Inventory $inventory)
     {
-        //
+        try {
+            // Record the deletion in stock logs
+            StockLog::create([
+                'user_id' => auth()->user()->id,
+                'store_id' => 1, // Using supplier as a fallback
+                'action_type' => 'remove',
+                'description' => "Removed product from inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})",
+            ]);
+
+            // Record stock movement
+            StockMovement::create([
+                'inventory_id' => $inventory->id,
+                'quantity' => $inventory->quantity,
+                'movement_type' => 'out',
+            ]);
+            
+            $inventory->delete();
+            return redirect()->route('inventories.index')->with('success', 'Inventory deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error deleting inventory: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete inventory.');
+        }
     }
 }
