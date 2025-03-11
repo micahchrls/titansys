@@ -5,6 +5,7 @@ use Inertia\Inertia;
 
 use App\Http\Controllers\Product\ProductBrandController;
 use App\Http\Controllers\Product\ProductCategoryController;
+use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InventoryController;
@@ -27,6 +28,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('stores', function () {
         return Inertia::render('stores');
     })->name('stores');
+
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+    Route::get('/products/edit/{product}', [ProductController::class, 'edit'])->name('products.edit');
 
     Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');
     Route::post('/inventories', [InventoryController::class, 'store'])->name('inventories.store');

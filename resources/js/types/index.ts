@@ -58,7 +58,7 @@ export interface Brand {
 
 
 export interface Supplier {
-    id: number; 
+    id: number;
     name: string;
     contact_name: string;
     phone: string;
@@ -90,6 +90,22 @@ export interface User {
     role: string;
     created_at: string;
     updated_at: string;
+}
+
+export interface Product {
+    id: number; 
+    sku: string;
+    name: string;
+    description: string;
+    price: number;
+    size: string;
+    product_brand_id: number;
+    product_brand_name: string;
+    product_category_id: number;
+    product_category_name: string;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
 }
 
 export interface Inventory {

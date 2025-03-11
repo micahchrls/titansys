@@ -1,10 +1,11 @@
 import { NavMain } from '@/components/nav-main';
-import { NavManage } from '@/components/nav-manage';
+import { NavManageProduct } from '@/components/nav-manage-product';
+import { NavManageOther } from '@/components/nav-manage-other';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Boxes, Folder, Layers, LayoutGrid, Store, Tag, TrendingUp, Truck, Users } from 'lucide-react';
+import { BookOpen, Boxes, Folder, Layers, LayoutGrid, Package, Store, Tag, TrendingUp, Truck, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -25,7 +26,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const mainNavItemsManage: NavItem[] = [
+const mainNavItemsManageProduct: NavItem[] = [
     {
         title: 'Manage Categories',
         url: '/categories',
@@ -36,6 +37,15 @@ const mainNavItemsManage: NavItem[] = [
         url: '/brands',
         icon: Tag, // Represents registered brands
     },
+    {
+        title: 'Manage Products',
+        url: '/products',
+        icon: Package, // Represents registered brands
+    },
+   
+];
+
+const mainNavItemsManageOther: NavItem[] = [
     {
         title: 'Manage Suppliers',
         url: '/suppliers',
@@ -83,7 +93,8 @@ export function AppSidebar() {
 
             <SidebarContent className="text-[15px]">
                 <NavMain items={mainNavItems} />
-                <NavManage items={mainNavItemsManage} />
+                <NavManageProduct items={mainNavItemsManageProduct} />
+                <NavManageOther items={mainNavItemsManageOther} />
             </SidebarContent>
 
             <SidebarFooter>
