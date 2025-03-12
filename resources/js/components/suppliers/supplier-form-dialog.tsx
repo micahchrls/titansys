@@ -8,137 +8,162 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { router } from "@inertiajs/react";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
 
 interface SupplierFormDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
+const formSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    contact_name: z.string().min(1, "Contact name is required"),
+    phone: z.string().min(1, "Phone number is required"),
+    email: z.string().email("Please enter a valid email address"),
+    address: z.string().min(1, "Address is required"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
 export function SupplierFormDialog({ open, onOpenChange }: SupplierFormDialogProps) {
-    const [name, setName] = useState("");
-    const [contactName, setContactName] = useState("");
-    const [phone, setPhone] = useState("");
-    const [email, setEmail] = useState("");
-    const [address, setAddress] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: "",
+            contact_name: "",
+            phone: "",
+            email: "",
+            address: "",
+        },
+    });
 
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-
+    function onSubmit(values: FormValues) {
         router.post(
             "/suppliers",
+            values,
             {
-                name,
-                contact_name: contactName,
-                phone,
-                email,
-                address,
-            },
-            {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
+                    form.reset();
                     onOpenChange(false);
-                    setName("");
-                    setContactName("");
-                    setPhone("");
-                    setEmail("");
-                    setAddress("");
                     toast.success("Supplier created successfully");
-                    setIsSubmitting(false);
                 },
                 onError: (errors) => {
-                    console.error(errors);
-                    toast.error("Failed to create supplier");
-                    setIsSubmitting(false);
+                    if (errors.message) {
+                        toast.error(errors.message);
+                    } else {
+                        toast.error("Failed to create supplier.");
+                    }
                 },
             }
         );
-    };
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
-                <form onSubmit={handleSubmit}>
-                    <DialogHeader>
-                        <DialogTitle>Create Supplier</DialogTitle>
-                        <DialogDescription>
-                            Add a new supplier to your system. Click save when you're done.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                                Name
-                            </Label>
-                            <Input
-                                id="name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="col-span-3"
-                                required
+            <DialogContent className="sm:max-w-[625px]">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <DialogHeader>
+                            <DialogTitle>Create Supplier</DialogTitle>
+                            <DialogDescription>Add a new supplier to your system.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel htmlFor="name">Name</FormLabel>
+                                        <FormControl>
+                                            <Input id="name" placeholder="Enter supplier name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="contact_name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel htmlFor="contact_name">Contact Name</FormLabel>
+                                        <FormControl>
+                                            <Input id="contact_name" placeholder="Enter contact person's name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel htmlFor="phone">Phone Number</FormLabel>
+                                        <FormControl>
+                                            <Input id="phone" placeholder="Enter phone number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel htmlFor="email">Email Address</FormLabel>
+                                        <FormControl>
+                                            <Input type="email" id="email" placeholder="Enter email address" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel htmlFor="address">Address</FormLabel>
+                                        <FormControl>
+                                            <Textarea 
+                                                id="address" 
+                                                placeholder="Enter business address" 
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
                             />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="contact_name" className="text-right">
-                                Contact Name
-                            </Label>
-                            <Input
-                                id="contact_name"
-                                value={contactName}
-                                onChange={(e) => setContactName(e.target.value)}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="phone" className="text-right">
-                                Phone
-                            </Label>
-                            <Input
-                                id="phone"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="email" className="text-right">
-                                Email
-                            </Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-right">
-                                Address
-                            </Label>
-                            <Textarea
-                                id="address"
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? "Creating..." : "Create supplier"}
-                        </Button>
-                    </DialogFooter>
-                </form>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                Create
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );
