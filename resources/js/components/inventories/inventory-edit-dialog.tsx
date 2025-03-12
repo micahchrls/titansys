@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { router } from '@inertiajs/react';
+import React from 'react';
 
 interface InventoryItem {
     id: number;
@@ -68,7 +69,7 @@ export function InventoryEditDialog({
         },
     });
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (inventory) {
             form.reset({
                 product_name: inventory.product_name,

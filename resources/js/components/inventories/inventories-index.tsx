@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Eye, Pencil, Plus, Trash } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
 import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
@@ -180,14 +180,7 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                 brands={brands}
                 suppliers={suppliers}
             />
-
-            {/* <InventoryEdit 
-                open={editDialogOpen} 
-                onOpenChange={setEditDialogOpen} 
-                inventories={inventories.data} 
-                selectedInventoryId={selectedInventoryId} 
-            /> */}
-
+            
             <InventoryDelete 
                 open={deleteDialogOpen} 
                 onOpenChange={setDeleteDialogOpen} 
