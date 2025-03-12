@@ -6,11 +6,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Pencil, Plus, Trash } from 'lucide-react';
+import { Eye, Pencil, Plus, Trash } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
 import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
 import InventoryDelete from "@/components/inventories/inventory-delete";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from 'lucide-react';
 interface InventoriesIndexProps {
     inventories: {
         data: Inventory[];
@@ -54,6 +56,10 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
     const handleDelete = (inventory: Inventory) => {
         setSelectedInventoryId(inventory.id);
         setDeleteDialogOpen(true);
+    };
+
+    const handleView = (inventory: Inventory) => {
+        router.visit(route('inventories.show', inventory.id));
     };
 
     useEffect(() => {
@@ -107,19 +113,30 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
             enableSorting: true,
         },
         {
-            id: 'actions',
+            id: "actions",
             cell: ({ row }) => {
-                const inventory = row.original;
+                const inventory = row.original
                 return (
-                    <div className="space-x-2 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(inventory)}>
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(inventory)}>
-                            <Trash className="h-4 w-4" />
-                        </Button>
-                    </div>
-                );
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem
+                                onClick={() => navigator.clipboard.writeText(inventory.product_sku)}
+                            >
+                                Copy SKU
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleView(inventory)}>View details</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(inventory)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )
             },
         },
     ];

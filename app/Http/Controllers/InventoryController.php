@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\InventoryResource;
+use App\Http\Resources\InventoryShowResource;
 use App\Models\Inventory;
 use App\Models\Product\Product;
 use App\Models\Product\ProductCategory;
@@ -241,8 +242,8 @@ class InventoryController extends Controller
     public function show(Inventory $inventory)
     {
         try {
-            $inventory = InventoryResource::make($inventory)->response()->getData(true);
-            return Inertia::render('inventory', [
+            $inventory = InventoryShowResource::make($inventory)->response()->getData(true);
+            return Inertia::render('inventories/show', [
                 'inventory' => $inventory
             ]);
         } catch (\Exception $e) {
