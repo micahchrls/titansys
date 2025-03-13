@@ -13,6 +13,8 @@ import InventoriesFormDialog from "@/components/inventories/inventories-form-dia
 import InventoryDelete from "@/components/inventories/inventory-delete";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
 interface InventoriesIndexProps {
     inventories: {
         data: Inventory[];
@@ -111,6 +113,41 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
             accessorKey: 'reorder_level',
             header: ({ column }) => <DataTableColumnHeader column={column} title="Reorder Level" />,
             enableSorting: true,
+        },
+        {
+            id: "stock_status",
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Stock Status" />,
+            cell: ({ row }) => {
+                const inventory = row.original;
+                const quantity = inventory.quantity;
+                const reorderLevel = inventory.reorder_level;
+                
+                // Define status based on quantity and reorder level
+                let status: string;
+                let variant: "default" | "secondary" | "destructive" | "outline";
+                let className: string;
+                
+                if (quantity <= 0) {
+                    status = "Out of Stock";
+                    variant = "destructive";
+                    className = "bg-red-100 text-red-800 border-red-200";
+                } else if (quantity <= reorderLevel) {
+                    status = "Low Stock";
+                    variant = "secondary";
+                    className = "bg-amber-100 text-amber-800 border-amber-200";
+                } else {
+                    status = "In Stock";
+                    variant = "default";
+                    className = "bg-green-100 text-green-800 border-green-200";
+                }
+                
+                return (
+                    <Badge variant={variant} className={className}>
+                        {status}
+                    </Badge>
+                );
+            },
+            enableSorting: false,
         },
         {
             id: "actions",
