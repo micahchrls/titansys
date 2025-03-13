@@ -4,6 +4,7 @@ namespace App\Models\Store;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Store extends Model
 {
@@ -16,4 +17,9 @@ class Store extends Model
         'contact_number',
         'email',
     ];
+
+    public function storeImage(): HasOne
+    {
+        return $this->hasOne(StoreImage::class);
+    }
 }

@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Resources\StoreResource;
+use App\Models\Store\StoreImage;
 
 class StoreController extends Controller
 {
@@ -17,7 +19,7 @@ class StoreController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Store::query();
+            $query = Store::with('storeImage');
 
             if ($request->has('search')) {
                 $search = $request->input('search');
@@ -28,6 +30,7 @@ class StoreController extends Controller
             }
 
             $stores = $query->latest()->paginate(10);
+            $stores = StoreResource::collection($stores)->response()->getData(true);
 
             return Inertia::render('stores', [
                 'stores' => $stores,
@@ -45,25 +48,53 @@ class StoreController extends Controller
     public function store(Request $request)
     {
         try {
+            Log::info('Store creation initiated', ['request_data' => $request->except('store_image')]);
+            
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'address' => 'required|string|max:255',
                 'phone' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:255',
+                'store_image' => 'nullable|file|mimes:jpeg,jpg,png,gif,svg|max:5120',
             ]);
 
             if ($validator->fails()) {
+                Log::warning('Store validation failed', ['errors' => $validator->errors()->toArray()]);
                 return redirect()->back()
                     ->withErrors($validator)
                     ->withInput();
             }
 
+            // Begin transaction
+            \DB::beginTransaction();
+            
             $store = Store::create($validator->validated());
+            Log::info('Store created', ['store_id' => $store->id]);
 
+            if ($request->hasFile('store_image')) {
+                try {
+                    StoreImage::uploadImage($store->id, $request->file('store_image'), true);
+                    Log::info('Store image uploaded successfully', ['store_id' => $store->id]);
+                } catch (\Exception $e) {
+                    Log::error('Error uploading store image', [
+                        'store_id' => $store->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw $e;
+                }
+            }
+            
+            \DB::commit();
+            
             return redirect()->route('stores.index')->with('success', 'Store created successfully.');
         } catch (\Exception $e) {
-            Log::error('Error creating store: ' . $e->getMessage());
+            \DB::rollBack();
+            Log::error('Error creating store', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except('store_image')
+            ]);
             return redirect()->back()->with('error', 'Failed to create store.')->withInput();
         }
     }
@@ -74,6 +105,7 @@ class StoreController extends Controller
     public function show(Store $store)
     {
         try {
+            $store->load('storeImage');
             return Inertia::render('store-details', [
                 'store' => $store
             ]);
@@ -95,19 +127,46 @@ class StoreController extends Controller
                 'address' => 'required|string|max:255',
                 'phone' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:255',
+                'store_image' => 'nullable|file|mimes:jpeg,jpg,png,gif,svg|max:5120',
             ]);
 
             if ($validator->fails()) {
+                Log::warning('Store update validation failed', ['errors' => $validator->errors()->toArray()]);
                 return redirect()->back()
                     ->withErrors($validator)
                     ->withInput();
             }
 
+            // Begin transaction
+            \DB::beginTransaction();
+            
             $store->update($validator->validated());
+            Log::info('Store updated', ['store_id' => $store->id]);
 
+            if ($request->hasFile('store_image')) {
+                try {
+                    StoreImage::uploadImage($store->id, $request->file('store_image'), true);
+                    Log::info('Store image updated successfully', ['store_id' => $store->id]);
+                } catch (\Exception $e) {
+                    Log::error('Error uploading store image', [
+                        'store_id' => $store->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw $e;
+                }
+            }
+            
+            \DB::commit();
+            
             return redirect()->route('stores.index')->with('success', 'Store updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Error updating store: ' . $e->getMessage());
+            \DB::rollBack();
+            Log::error('Error updating store', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'store_id' => $store->id,
+                'request_data' => $request->except('store_image')
+            ]);
             return redirect()->back()->with('error', 'Failed to update store.')->withInput();
         }
     }
