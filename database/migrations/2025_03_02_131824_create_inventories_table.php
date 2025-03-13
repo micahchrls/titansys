@@ -15,10 +15,13 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('product_id');
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+            $table->unsignedBigInteger('store_id');
+            $table->foreign('store_id')->references('id')->on('stores')->onDelete('cascade');
             $table->unsignedInteger('quantity');
             $table->unsignedInteger('reorder_level')->default(10);
             $table->dateTime('last_restocked')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

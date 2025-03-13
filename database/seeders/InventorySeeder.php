@@ -45,6 +45,7 @@ class InventorySeeder extends Seeder
             // Create inventory record
             Inventory::create([
                 'product_id' => $product->id,
+                'store_id' => $faker->numberBetween(1, 3),
                 'quantity' => $quantity,
                 'reorder_level' => $reorderLevel,
                 'last_restocked' => $faker->dateTimeBetween('-6 months', 'now')->format('Y-m-d H:i:s'),
