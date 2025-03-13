@@ -326,9 +326,14 @@ export default function CategoriesIndex({ categories, filters = {} }: Categories
                 return (
                     <div className="flex justify-end space-x-2">
                         {!category.isSubcategory && (
-                            <Button variant="ghost" size="sm" onClick={() => handleAddSubcategory(category.id)}>
-                                <Plus className="h-4 w-4" />
-                                <span className="sr-only">Add Subcategory</span>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-primary hover:bg-primary/10 hover:text-primary" 
+                                onClick={() => handleAddSubcategory(category.id)}
+                            >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Subcategory
                             </Button>
                         )}
                         <Button 

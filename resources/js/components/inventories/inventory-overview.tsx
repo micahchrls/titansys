@@ -80,3 +80,6 @@ export function InventoryOverview() {
     </div>
   );
 }
+
+// Add default export for lazy loading
+export default InventoryOverview;
