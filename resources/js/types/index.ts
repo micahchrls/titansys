@@ -140,6 +140,7 @@ export interface Inventory {
     product_category: string;
     product_brand: string;
     product_image: ProductImage[];
+    store: Store[];
     supplier: Supplier[];
     reorder_level: number;
     last_restocked: string;
