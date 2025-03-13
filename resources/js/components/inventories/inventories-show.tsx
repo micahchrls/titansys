@@ -3,14 +3,12 @@ import { router } from '@inertiajs/react';
 import { ArrowLeft, Edit, Trash } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { InventoryDetailTabs } from '@/components/ui/inventory-detail-tabs';
+import { InventoryDetailTabs } from '@/components/inventories/inventory-detail-tabs';
 import { useState } from 'react';
-import { InventoryEditDialog } from './inventory-edit-dialog';
-import { InventoryDeleteDialog } from './inventory-delete-dialog';
-import { Supplier, StockMovement } from '@/types';
-
-
-
+import { InventoryEditDialog } from '@/components/inventories/inventory-edit-dialog';
+import { InventoryDeleteDialog } from '@/components/inventories/inventory-delete-dialog';
+import { Supplier, StockMovement, ProductImage } from '@/types';
+import { toast } from 'sonner';
 interface InventoryShowProps {
     inventory: {
         data: {
@@ -25,12 +23,12 @@ interface InventoryShowProps {
             product_category: string;
             product_brand_id: number;
             product_brand: string;
+            product_image: ProductImage[];
             supplier: Supplier[];
             quantity: number;
             stock_movement: StockMovement[];
             reorder_level: number;
             last_restocked: string;
-            image_url: string | null;
             created_at: string;
             updated_at: string;
         }
@@ -41,6 +39,7 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
     const { data } = inventory;
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
     
     const handleEdit = () => {
         setIsEditDialogOpen(true);
@@ -86,7 +85,20 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{data.product_name}</h1>
-                    <p className="text-muted-foreground">SKU: {data.product_sku}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-muted-foreground">SKU: {data.product_sku}</p>
+                        <Button 
+                            variant="ghost" 
+                            size="sm"   
+                            className="h-6 px-2"
+                            onClick={() => {
+                                navigator.clipboard.writeText(data.product_sku);
+                                toast.success("SKU copied to clipboard");
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        </Button>
+                    </div>
                 </div>
                 <StockStatusBadge />
             </div>

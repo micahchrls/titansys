@@ -15,8 +15,8 @@ import {
     getFilteredRowModel,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { InventoryMovementEditDialog } from './inventory-movement-edit-dialog';
-import { InventoryMovementDeleteDialog } from './inventory-movement-delete-dialog';
+import { InventoryMovementEditDialog } from '@/components/inventories/inventory-movement-edit-dialog';
+import { InventoryMovementDeleteDialog } from '@/components/inventories/inventory-movement-delete-dialog';
 import { 
     DropdownMenu,
     DropdownMenuContent,
@@ -24,7 +24,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { DateRangePicker } from './date-picker';
+import { DateRangePicker } from '../ui/date-picker';
 import { addDays, isAfter, isBefore, isEqual, startOfDay, endOfDay, format } from 'date-fns';
 import { Inventory, Product, ProductImage, Supplier } from '@/types';
 
@@ -51,8 +51,10 @@ interface InventoryDetailTabsProps {
 export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
     
     const supplierInfo: Supplier[] = data.supplier;
-    const productImage: ProductImage[] = data.product_image; 
-    const productImageFile = `${window.location.origin}/storage/products/${productImage.file_name}`;
+    const productImage: ProductImage[] = data.product_image || [];
+    const productImageFile = productImage.length > 0
+        ? `${window.location.origin}/storage/products/${productImage[0].file_name}`
+        : null;
     
     const [activeTab, setActiveTab] = useState<'details' | 'movements'>('details');
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -307,11 +309,11 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
             {activeTab === 'details' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     <div className="lg:col-span-1 space-y-3">
-                        {productImage ? (
+                        {productImage.length > 0 ? (
                             <Card>
                                 <CardContent className="p-0 overflow-hidden rounded-md">
                                     <img 
-                                        src={productImageFile} 
+                                        src={productImageFile || ''} 
                                         alt={data.product_name} 
                                         className="w-full h-auto object-contain p-4"
                                         style={{ maxHeight: '240px' }}
