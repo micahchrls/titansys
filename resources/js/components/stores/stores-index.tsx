@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { DataTablePagination } from '@/components/ui/data-table-pagination-simple';
 import { Toaster } from 'sonner';
 import StoreFormDialog from '@/components/stores/store-form-dialog';
+import StoreDelete from '@/components/stores/store-delete';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -28,8 +29,8 @@ interface StoresIndexProps {
     initialSearch?: string;
 }
 
-export default function StoresIndex({ stores, initialSearch }: StoresIndexProps) {
-    const [searchTerm, setSearchTerm] = useState(initialSearch || '');
+export default function StoresIndex({ stores, initialSearch = '' }: StoresIndexProps) {
+    const [searchTerm, setSearchTerm] = useState(initialSearch);
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [formDialogOpen, setFormDialogOpen] = useState(false);
     const [editingStore, setEditingStore] = useState<Store | null>(null);
@@ -47,6 +48,7 @@ export default function StoresIndex({ stores, initialSearch }: StoresIndexProps)
     };
 
     const handleDelete = (store: Store) => {
+        console.log(store.id)
         setSelectedStoreId(store.id);
         setDeleteDialogOpen(true);
     };
@@ -58,7 +60,7 @@ export default function StoresIndex({ stores, initialSearch }: StoresIndexProps)
                 page,
                 search: searchTerm || undefined 
             },
-            {
+            {   
                 preserveState: true,
                 replace: true,
                 only: ['stores'],
@@ -71,18 +73,29 @@ export default function StoresIndex({ stores, initialSearch }: StoresIndexProps)
     };
 
     useEffect(() => {
-        if (debouncedSearchTerm !== undefined) {
-            router.get(
-                '/stores',
-                { search: debouncedSearchTerm },
-                {
-                    preserveState: true,
-                    replace: true,
-                    only: ['stores'],
-                }
-            );
+        if (debouncedSearchTerm === initialSearch) return;
+        
+        const params = new URLSearchParams(window.location.search);
+        
+        if (debouncedSearchTerm) {
+            params.set('search', debouncedSearchTerm);
+        } else {
+            params.delete('search');
         }
-    }, [debouncedSearchTerm]);
+        params.delete('page');
+        
+        router.get('/stores', 
+            { 
+                search: debouncedSearchTerm || undefined 
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['stores'],
+            }
+        );
+    }, [debouncedSearchTerm, initialSearch]);
 
     // Helper function to highlight search matches
     const highlightMatch = (text: string, searchTerm: string) => {
@@ -195,7 +208,7 @@ export default function StoresIndex({ stores, initialSearch }: StoresIndexProps)
                                                     <img 
                                                         src={imageUrl} 
                                                         alt={store.name} 
-                                                        className="h-full w-full object-cover transition-all group-hover:scale-105"
+                                                        className="h-full w-full object-cover p-3 transition-all"
                                                         onError={(e) => {
                                                             // Fallback to initials if image fails to load
                                                             const target = e.target as HTMLImageElement;
@@ -334,9 +347,13 @@ export default function StoresIndex({ stores, initialSearch }: StoresIndexProps)
                 }}
             />
 
-            {/* <StoreEdit open={editDialogOpen} onOpenChange={setEditDialogOpen} stores={stores.data} selectedStoreId={selectedStoreId} />
-
-            <StoreDelete open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} stores={stores.data} selectedStoreId={selectedStoreId} /> */}
+            {/* Store Delete Dialog */}
+            <StoreDelete 
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                stores={stores.data}
+                selectedStoreId={selectedStoreId}
+            />
 
             <Toaster />
         </div>

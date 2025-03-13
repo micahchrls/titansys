@@ -120,11 +120,23 @@ export default function UsersIndex({ users, filters = {} }: UsersIndexProps) {
                 const user = row.original;
                 return (
                     <div className="space-x-2 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                            <Pencil className="h-4 w-4" />
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-primary hover:bg-primary/10 hover:text-primary" 
+                            onClick={() => handleEdit(user)} 
+                        >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(user)}>
-                            <Trash className="h-4 w-4" />
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive" 
+                            onClick={() => handleDelete(user)} 
+                        >
+                            <Trash className="h-4 w-4 mr-1" />
+                            Delete
                         </Button>
                     </div>
                 );

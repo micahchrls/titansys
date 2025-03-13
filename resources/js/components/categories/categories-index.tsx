@@ -331,13 +331,23 @@ export default function CategoriesIndex({ categories, filters = {} }: Categories
                                 <span className="sr-only">Add Subcategory</span>
                             </Button>
                         )}
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(category)}>
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-primary hover:bg-primary/10 hover:text-primary" 
+                            onClick={() => handleEdit(category)}
+                        >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(category)}>
-                            <Trash className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive" 
+                            onClick={() => handleDelete(category)}
+                        >
+                            <Trash className="h-4 w-4 mr-1" />
+                            Delete
                         </Button>
                     </div>
                 );

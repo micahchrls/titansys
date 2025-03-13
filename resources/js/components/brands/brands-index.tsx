@@ -89,13 +89,25 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
                 const brand = row.original;
                 return (
                     <div className="space-x-2 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(brand)}>
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(brand)}>
-                            <Trash className="h-4 w-4" />
-                        </Button>
-                    </div>
+    <Button
+        variant="outline"
+        size="sm"
+        className="text-primary hover:bg-primary/10 hover:text-primary"
+        onClick={() => handleEdit(brand)}
+    >
+        <Pencil className="h-4 w-4 mr-1" />
+        Edit
+    </Button>
+    <Button
+        variant="outline"
+        size="sm"
+        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => handleDelete(brand)}
+    >
+        <Trash className="h-4 w-4 mr-1" />
+        Delete
+    </Button>
+</div>
                 );
             },
         },
@@ -127,7 +139,12 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
 
             <BrandEdit open={editDialogOpen} onOpenChange={setEditDialogOpen} brands={brands.data} selectedBrandId={selectedBrandId} />
 
-            <BrandDelete open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} brands={brands.data} selectedBrandId={selectedBrandId} />
+            <BrandDelete 
+            open={deleteDialogOpen} 
+            onOpenChange={setDeleteDialogOpen} 
+            brands={brands.data} 
+            selectedBrandId={selectedBrandId} 
+            />
 
             <Toaster />
         </div>
