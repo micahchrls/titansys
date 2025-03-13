@@ -157,6 +157,19 @@ export interface Store {
     location_address: string;
     contact_number: string;
     email: string;
+    store_image: StoreImage | null;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
+export interface StoreImage {
+    id: number;
+    store_id: number;
+    file_name: string;
+    file_path: string;
+    file_extension: string;
+    file_size: number;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

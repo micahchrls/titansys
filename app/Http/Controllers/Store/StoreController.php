@@ -29,7 +29,7 @@ class StoreController extends Controller
                 });
             }
 
-            $stores = $query->latest()->paginate(10);
+            $stores = $query->latest()->paginate(2);
             $stores = StoreResource::collection($stores)->response()->getData(true);
 
             return Inertia::render('stores', [
@@ -53,8 +53,8 @@ class StoreController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'address' => 'required|string|max:255',
-                'phone' => 'nullable|string|max:20',
+                'location_address' => 'required|string|max:255',
+                'contact_number' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:255',
                 'store_image' => 'nullable|file|mimes:jpeg,jpg,png,gif,svg|max:5120',
             ]);
@@ -124,8 +124,8 @@ class StoreController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'address' => 'required|string|max:255',
-                'phone' => 'nullable|string|max:20',
+                'location_address' => 'required|string|max:255',
+                'contact_number' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:255',
                 'store_image' => 'nullable|file|mimes:jpeg,jpg,png,gif,svg|max:5120',
             ]);

@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
 import { router } from '@inertiajs/react';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -88,7 +89,8 @@ export function BrandFormDialog({ open, onOpenChange }: BrandFormDialogProps) {
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                            <Button className="hover:cursor-pointer" type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Create
                             </Button>
                         </DialogFooter>

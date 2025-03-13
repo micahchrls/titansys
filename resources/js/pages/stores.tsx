@@ -1,7 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Store } from '@/types';
 import StoresIndex from '@/components/stores/stores-index';
 
@@ -12,8 +11,24 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface StoresPageProps {
+    stores: {
+        data: Store[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        links: { url: string | null; label: string; active: boolean; }[];
+    };
+    filters: {
+        search?: string;
+    };
+    [key: string]: any;
+}
+
 export default function Stores() {
-    const { stores } = usePage<{ stores: Store[] }>().props;
+    const { stores, filters } = usePage<StoresPageProps>().props;
+    
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Store" />
@@ -26,7 +41,7 @@ export default function Stores() {
                         </p>
                     </div>
                 </div>
-                <StoresIndex stores={stores} />
+                <StoresIndex stores={stores} initialSearch={filters.search} />
             </div>
         </AppLayout>
     );
