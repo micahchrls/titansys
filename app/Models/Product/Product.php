@@ -5,6 +5,7 @@ namespace App\Models\Product;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Product\ProductBrand;
 use App\Models\Product\ProductCategory;
 use App\Models\Supplier;
@@ -39,5 +40,9 @@ class Product extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+    public function productImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class);
     }
 }

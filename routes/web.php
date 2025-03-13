@@ -9,7 +9,7 @@ use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InventoryController;
-
+use App\Http\Controllers\Store\StoreController;
 
 
 Route::get('/', function () {
@@ -25,14 +25,10 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('sales');
     })->name('sales');
 
-    Route::get('stores', function () {
-        return Inertia::render('stores');
-    })->name('stores');
-
-    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::get('stores', [StoreController::class, 'index'])->name('stores.index');
+    Route::post('stores', [StoreController::class, 'store'])->name('stores.store');
+    Route::put('stores/{store}', [StoreController::class, 'update'])->name('stores.update');
+    Route::delete('stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
     Route::get('/products/edit/{product}', [ProductController::class, 'edit'])->name('products.edit');
 

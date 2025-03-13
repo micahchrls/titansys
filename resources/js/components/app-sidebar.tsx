@@ -37,11 +37,11 @@ const mainNavItemsManageProduct: NavItem[] = [
         url: '/brands',
         icon: Tag, // Represents registered brands
     },
-    {
-        title: 'Manage Products',
-        url: '/products',
-        icon: Package, // Represents registered brands
-    },
+    // {
+    //     title: 'Manage Products',
+    //     url: '/products',
+    //     icon: Package, // Represents registered brands
+    // },
    
 ];
 

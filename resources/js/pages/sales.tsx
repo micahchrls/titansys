@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { SalesOverview } from "@/components/sales/sales-overview";
 import { SalesTable } from "@/components/sales/sales-table";
+import { usePage } from "@inertiajs/react";
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -12,6 +13,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Sales() {
+  const { sales } = usePage<{ sales: Sale[] }>().props;
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Sales" />

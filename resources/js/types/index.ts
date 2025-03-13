@@ -108,18 +108,55 @@ export interface Product {
     [key: string]: unknown;
 }
 
+export interface StockMovement {
+    id: number;
+    quantity: number;
+    movement_type: 'in' | 'out' | 'adjustment';
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
+export interface ProductImage {
+    id: number;
+    product_id: number;
+    file_name: string;
+    file_path: string;
+    file_extension: string;
+    file_size: number;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
 export interface Inventory {
     id: number;
     product_id: number;
     product_sku: string;
     product_name: string;
+    product_description: string;
     product_price: number;
     product_size: string;
     product_category: string;
     product_brand: string;
+    product_image: ProductImage[];
+    supplier: Supplier[];
     reorder_level: number;
     last_restocked: string;
     quantity: number;
+    stock_movement: StockMovement[];
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
+
+export interface Store {
+    id: number;
+    name: string;
+    location_address: string;
+    contact_number: string;
+    email: string;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

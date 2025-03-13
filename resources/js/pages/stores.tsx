@@ -1,7 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import UnderDevelopment from '@/components/under-development';
+import { usePage } from '@inertiajs/react';
+import { Store } from '@/types';
+import StoresIndex from '@/components/stores/stores-index';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,10 +13,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Stores() {
+    const { stores } = usePage<{ stores: Store[] }>().props;
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Store" />
-            {/* <div className="flex h-full flex-1 flex-col p-6">
+            <div className="flex h-full flex-1 flex-col p-6">
                 <div className="flex items-center justify-between pb-6">
                     <div>
                         <h2 className="text-2xl font-semibold tracking-tight">Manage Store</h2>
@@ -23,10 +26,8 @@ export default function Stores() {
                         </p>
                     </div>
                 </div>
-                <StoresList />
-            </div> */}
-
-            <UnderDevelopment />
+                <StoresIndex stores={stores} />
+            </div>
         </AppLayout>
     );
 }

@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { router } from '@inertiajs/react';
 import { ArrowLeft, Edit, Trash } from 'lucide-react';
 import { Toaster } from 'sonner';
@@ -8,14 +7,9 @@ import { InventoryDetailTabs } from '@/components/ui/inventory-detail-tabs';
 import { useState } from 'react';
 import { InventoryEditDialog } from './inventory-edit-dialog';
 import { InventoryDeleteDialog } from './inventory-delete-dialog';
+import { Supplier, StockMovement } from '@/types';
 
-interface StockMovement {
-    id: number;
-    quantity: number;
-    movement_type: 'in' | 'out' | 'adjustment';
-    created_at: string;
-    updated_at: string;
-}
+
 
 interface InventoryShowProps {
     inventory: {
@@ -27,9 +21,11 @@ interface InventoryShowProps {
             product_description: string;
             product_price: number;
             product_size: string;
+            product_category_id: number;
             product_category: string;
+            product_brand_id: number;
             product_brand: string;
-            supplier_name: string;
+            supplier: Supplier[];
             quantity: number;
             stock_movement: StockMovement[];
             reorder_level: number;

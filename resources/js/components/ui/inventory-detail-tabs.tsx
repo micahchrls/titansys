@@ -2,15 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PackageOpen, ArrowUpDown, Search, X, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RefreshCw, User, Calendar, Clock, FileText, Info, AlertTriangle, MapPin, Hash, MoreHorizontal, Pencil, Trash2, CalendarIcon } from 'lucide-react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import {  ArrowUpDown, X, ArrowUp, ArrowDown, RefreshCw, User, Calendar, Clock, FileText, Info, MapPin, Hash, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { 
     ColumnDef,
     flexRender,
@@ -22,7 +14,6 @@ import {
     ColumnFiltersState,
     getFilteredRowModel,
 } from "@tanstack/react-table";
-import { Input } from '@/components/ui/input';
 import { Button } from "@/components/ui/button";
 import { InventoryMovementEditDialog } from './inventory-movement-edit-dialog';
 import { InventoryMovementDeleteDialog } from './inventory-movement-delete-dialog';
@@ -35,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import { DateRangePicker } from './date-picker';
 import { addDays, isAfter, isBefore, isEqual, startOfDay, endOfDay, format } from 'date-fns';
+import { Inventory, Product, ProductImage, Supplier } from '@/types';
 
 interface StockMovement {
     id: number;
@@ -52,31 +44,16 @@ interface StockMovement {
     reason_code?: string;
 }
 
-interface InventoryData {
-    id: number;
-    product_id: number;
-    product_name: string;
-    product_sku: string;
-    product_description: string;
-    product_price: number;
-    product_size: string;
-    product_category: string;
-    product_brand: string;
-    supplier_name: string;
-    quantity: number;
-    stock_movement: StockMovement[];
-    reorder_level: number;
-    last_restocked: string;
-    image_url: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
 interface InventoryDetailTabsProps {
-    data: InventoryData;
+    data: Inventory;
 }
 
 export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
+    
+    const supplierInfo: Supplier[] = data.supplier;
+    const productImage: ProductImage[] = data.product_image; 
+    const productImageFile = `${window.location.origin}/storage/products/${productImage.file_name}`;
+    
     const [activeTab, setActiveTab] = useState<'details' | 'movements'>('details');
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -92,12 +69,12 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
     const [filteredMovements, setFilteredMovements] = useState<StockMovement[]>(stockMovements);
 
     // Ensure stockMovements is updated when data changes (e.g., after API update)
-    React.useEffect(() => {
+   useEffect(() => {
         setStockMovements(data.stock_movement || []);
     }, [data.stock_movement]);
 
     // Apply date range filter whenever stockMovements, dateFrom, or dateTo changes
-    React.useEffect(() => {
+   useEffect(() => {
         filterMovementsByDateRange();
     }, [stockMovements, dateFrom, dateTo]);
 
@@ -330,13 +307,13 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
             {activeTab === 'details' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     <div className="lg:col-span-1 space-y-3">
-                        {data.image_url ? (
+                        {productImage ? (
                             <Card>
                                 <CardContent className="p-0 overflow-hidden rounded-md">
                                     <img 
-                                        src={data.image_url} 
+                                        src={productImageFile} 
                                         alt={data.product_name} 
-                                        className="w-full h-auto object-cover"
+                                        className="w-full h-auto object-contain p-4"
                                         style={{ maxHeight: '240px' }}
                                     />
                                 </CardContent>
@@ -366,7 +343,7 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
                                 </div>
                                 <div className="h-px w-full bg-border my-3" />
                                 <InfoItem label="Status" value={<StockStatusBadge />} />
-                                <InfoItem label="Last Restocked" value={new Date(data.last_restocked).toLocaleDateString()} />
+                                <InfoItem label="Last Restocked" value={formatDate(data.last_restocked)} />
                             </CardContent>
                         </Card>
                     </div>
@@ -389,7 +366,12 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
                                 <CardContent className="space-y-2">
                                     <InfoItem label="Brand" value={data.product_brand} />
                                     <InfoItem label="Category" value={data.product_category} />
-                                    <InfoItem label="Price" value={`$${typeof data.product_price === 'number' ? data.product_price.toFixed(2) : data.product_price}`} />
+                                    <InfoItem 
+                                        label="Price" 
+                                        value={`₱ ${typeof data.product_price === 'number' 
+                                            ? data.product_price.toLocaleString('fil-PH', { minimumFractionDigits: 2 }) 
+                                            : data.product_price}`} 
+                                    />
                                     {data.product_size && (
                                         <InfoItem label="Size" value={data.product_size} />
                                     )}
@@ -398,12 +380,25 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Supply Information</CardTitle>
+                                    <CardTitle>Supplier Information</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
-                                    <InfoItem label="Supplier" value={data.supplier_name} />
-                                    <InfoItem label="Created" value={new Date(data.created_at).toLocaleDateString()} />
-                                    <InfoItem label="Last Updated" value={new Date(data.updated_at).toLocaleDateString()} />
+                                    <InfoItem 
+                                        label="Name" 
+                                        value={supplierInfo.name} 
+                                    />
+                                    <InfoItem 
+                                        label="Email" 
+                                        value={supplierInfo.email} 
+                                    />
+                                    <InfoItem 
+                                        label="Phone" 
+                                        value={supplierInfo.phone} 
+                                    />
+                                    <InfoItem 
+                                        label="Address" 
+                                        value={supplierInfo.address} 
+                                    />
                                 </CardContent>
                             </Card>
                         </div>
