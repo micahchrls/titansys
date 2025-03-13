@@ -29,7 +29,7 @@ class StoreController extends Controller
                 });
             }
 
-            $stores = $query->latest()->paginate(2);
+            $stores = $query->latest()->paginate(10);
             $stores = StoreResource::collection($stores)->response()->getData(true);
 
             return Inertia::render('stores', [
