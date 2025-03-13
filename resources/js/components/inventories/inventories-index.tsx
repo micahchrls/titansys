@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2, FileText, Hash } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
 import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
@@ -118,22 +118,31 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                 const inventory = row.original
                 return (
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
+                        <DropdownMenuTrigger asChild className="hover:cursor-pointer">
+                            <Button variant="outline" size="sm" className="h-8">
+                                <span className="text-xs">Actions</span>
+                                <MoreHorizontal className="h-4 w-4 ml-1" />
                                 <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" >
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem
                                 onClick={() => navigator.clipboard.writeText(inventory.product_sku)}
+                                className="hover:cursor-pointer"
                             >
+                                <Hash className="h-4 w-4 mr-2" />
                                 Copy SKU
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleView(inventory)}>View details</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(inventory)}>Delete</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleView(inventory)} className="hover:cursor-pointer">
+                                <FileText className="h-4 w-4 mr-2" />
+                                View details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(inventory)} className="text-red-600 hover:text-red-700 focus:text-red-700 hover:cursor-pointer">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )

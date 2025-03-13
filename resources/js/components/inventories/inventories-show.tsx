@@ -9,6 +9,7 @@ import { InventoryEditDialog } from '@/components/inventories/inventory-edit-dia
 import { InventoryDeleteDialog } from '@/components/inventories/inventory-delete-dialog';
 import { Supplier, StockMovement, ProductImage } from '@/types';
 import { toast } from 'sonner';
+import { Copy } from 'lucide-react';
 interface InventoryShowProps {
     inventory: {
         data: {
@@ -66,7 +67,7 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <Button variant="outline" onClick={handleBack} size="sm">
+                <Button variant="outline" onClick={handleBack} size="sm" className="hover:cursor-pointer">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Inventory
                 </Button>
@@ -90,13 +91,13 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
                         <Button 
                             variant="ghost" 
                             size="sm"   
-                            className="h-6 px-2"
                             onClick={() => {
                                 navigator.clipboard.writeText(data.product_sku);
                                 toast.success("SKU copied to clipboard");
                             }}
+                            className="hover:cursor-pointer"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            <Copy className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
