@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from '@inertiajs/react';
-import { Loader2, X, Trash } from 'lucide-react';
+import { Loader2, Trash } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ const formSchema = z.object({
     product_category_id: z.string().min(1, 'Category is required'),
     product_brand_id: z.string().min(1, 'Brand is required'),
     supplier_id: z.string().min(1, 'Supplier is required'),
+    store_id: z.string().min(1, 'Store is required'),
     quantity: z.string().min(1, 'Quantity is required'),
     reorder_level: z.string().min(1, 'Reorder level is required'),
     image: z.instanceof(File).optional(),
@@ -34,17 +35,27 @@ interface InventoriesFormDialogProps {
     categories?: any[];
     brands?: any[];
     suppliers?: any[];
+    stores?: any[];
 }
 
-export default function InventoriesFormDialog({ open, onOpenChange, categories = [], brands = [], suppliers = [] }: InventoriesFormDialogProps) {
+export default function InventoriesFormDialog({
+    open,
+    onOpenChange,
+    categories = [],
+    brands = [],
+    suppliers = [],
+    stores = [],
+}: InventoriesFormDialogProps) {
     const [loading, setLoading] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [loadedCategories, setLoadedCategories] = useState<any[]>([]);
     const [loadedBrands, setLoadedBrands] = useState<any[]>([]);
     const [loadedSuppliers, setLoadedSuppliers] = useState<any[]>([]);
+    const [loadedStores, setLoadedStores] = useState<any[]>([]);
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
     const [isLoadingBrands, setIsLoadingBrands] = useState(false);
     const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
+    const [isLoadingStores, setIsLoadingStores] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -56,6 +67,7 @@ export default function InventoriesFormDialog({ open, onOpenChange, categories =
             product_category_id: '',
             product_brand_id: '',
             supplier_id: '',
+            store_id: '',
             quantity: '',
             reorder_level: '',
         },
@@ -69,6 +81,7 @@ export default function InventoriesFormDialog({ open, onOpenChange, categories =
             setLoadedCategories([]);
             setLoadedBrands([]);
             setLoadedSuppliers([]);
+            setLoadedStores([]);
         }
     }, [open, form]);
 
@@ -97,6 +110,15 @@ export default function InventoriesFormDialog({ open, onOpenChange, categories =
             // Use the suppliers prop that was passed in
             setLoadedSuppliers(suppliers);
             setIsLoadingSuppliers(false);
+        }
+    };
+
+    const loadStores = () => {
+        if (loadedStores.length === 0 && !isLoadingStores) {
+            setIsLoadingStores(true);
+            // Use the stores prop that was passed in
+            setLoadedStores(stores);
+            setIsLoadingStores(false);
         }
     };
 
@@ -161,236 +183,268 @@ export default function InventoriesFormDialog({ open, onOpenChange, categories =
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[800px]">
+            <DialogContent className="sm:max-w-5xl  ">
                 <DialogHeader>
                     <DialogTitle>Add New Inventory</DialogTitle>
                     <DialogDescription>Add a new product to your inventory. Fill out the form below with the product details.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="space-y-4">
-                            <Label htmlFor="image">Product Image (Optional)</Label>
-                            {!imagePreview ? (
-                                <div className="mx-auto w-full max-w-4xl rounded-lg border border-dashed border-neutral-200 bg-white p-2 dark:border-neutral-800 dark:bg-black">
-                                    <FileUpload onChange={handleImageChange} />
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                            <div className="md:col-span-1 space-y-4">
+                                <Label htmlFor="image">Product Image (Optional)</Label>
+                                {!imagePreview ? (
+                                    <div className="w-full rounded-lg border border-dashed border-neutral-200 bg-white p-2 dark:border-neutral-800 dark:bg-black">
+                                        <FileUpload onChange={handleImageChange} />
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-between gap-3">
+                                        <Card className="overflow-hidden">
+                                            <CardContent className="p-2">
+                                                <img src={imagePreview} alt="Product preview" className="h-64 w-full rounded-sm object-contain" />
+                                            </CardContent>
+                                        </Card>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={removeImage}
+                                            className="flex w-fit items-center gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive hover:cursor-pointer"
+                                        >
+                                            <Trash className="h-4 w-4" /> Remove Image
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="md:col-span-2 space-y-6">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div className="space-y-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="product_name"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Product Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter product name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="product_category_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Category</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadCategories}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select a category" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {isLoadingCategories ? (
+                                                                <div className="flex items-center justify-center py-2">
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    <span>Loading categories...</span>
+                                                                </div>
+                                                            ) : loadedCategories.length > 0 ? (
+                                                                loadedCategories.map((category) => (
+                                                                    <SelectItem key={category.id} value={String(category.id)}>
+                                                                        {category.name}
+                                                                    </SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">No categories found</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="price"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Price</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="0.00" step="0.01" min="0" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="size"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Size (Optional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Size/Dimensions" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="store_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Store Location</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadStores}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select a store" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {isLoadingStores ? (
+                                                                <div className="flex items-center justify-center py-2">
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    <span>Loading stores...</span>
+                                                                </div>
+                                                            ) : loadedStores.length > 0 ? (
+                                                                loadedStores.map((store) => (
+                                                                    <SelectItem key={store.id} value={String(store.id)}>
+                                                                        {store.name}
+                                                                    </SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">No stores found</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="product_brand_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Brand</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadBrands}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select a brand" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {isLoadingBrands ? (
+                                                                <div className="flex items-center justify-center py-2">
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    <span>Loading brands...</span>
+                                                                </div>
+                                                            ) : loadedBrands.length > 0 ? (
+                                                                loadedBrands.map((brand) => (
+                                                                    <SelectItem key={brand.id} value={String(brand.id)}>
+                                                                        {brand.name}
+                                                                    </SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">No brands found</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="supplier_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Supplier</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadSuppliers}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select a supplier" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {isLoadingSuppliers ? (
+                                                                <div className="flex items-center justify-center py-2">
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    <span>Loading suppliers...</span>
+                                                                </div>
+                                                            ) : loadedSuppliers.length > 0 ? (
+                                                                loadedSuppliers.map((supplier) => (
+                                                                    <SelectItem key={supplier.id} value={String(supplier.id)}>
+                                                                        {supplier.name}
+                                                                    </SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">No suppliers found</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="quantity"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Quantity</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="0" min="0" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="reorder_level"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Reorder Level</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="0" min="0" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="mt-2 flex justify-between items-center flex-col gap-3">
-                                    <Card className="overflow-hidden">
-                                        <CardContent className="p-2">
-                                            <img src={imagePreview} alt="Product preview" className="h-64 w-full rounded-sm object-contain" />
-                                        </CardContent>
-                                    </Card>
-                                    <Button 
-                                        type="button" 
-                                        variant="destructive" 
-                                        size="sm" 
-                                        onClick={removeImage} 
-                                        className="flex w-fit items-center gap-1"
-                                    >
-                                        <Trash className="h-4 w-4" /> Remove Image
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
 
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div className="space-y-4">
                                 <FormField
                                     control={form.control}
-                                    name="product_name"
+                                    name="description"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Product Name</FormLabel>
+                                            <FormLabel>Description (Optional)</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Enter product name" {...field} />
+                                                <Textarea placeholder="Enter product description" className="h-20 resize-none" {...field} />
                                             </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="price"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Price</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="0.00" step="0.01" min="0" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="size"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Size (Optional)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Size/Dimensions" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="product_category_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Category</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadCategories}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a category" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {isLoadingCategories ? (
-                                                        <div className="flex items-center justify-center py-2">
-                                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                            <span>Loading categories...</span>
-                                                        </div>
-                                                    ) : loadedCategories.length > 0 ? (
-                                                        loadedCategories.map((category) => (
-                                                            <SelectItem key={category.id} value={String(category.id)}>
-                                                                {category.name}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <div className="py-2 text-center text-sm text-muted-foreground">
-                                                            No categories found
-                                                        </div>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                             </div>
-
-                            <div className="space-y-4">
-                                <FormField
-                                    control={form.control}
-                                    name="product_brand_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Brand</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadBrands}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a brand" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {isLoadingBrands ? (
-                                                        <div className="flex items-center justify-center py-2">
-                                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                            <span>Loading brands...</span>
-                                                        </div>
-                                                    ) : loadedBrands.length > 0 ? (
-                                                        loadedBrands.map((brand) => (
-                                                            <SelectItem key={brand.id} value={String(brand.id)}>
-                                                                {brand.name}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <div className="py-2 text-center text-sm text-muted-foreground">
-                                                            No brands found
-                                                        </div>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="supplier_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Supplier</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadSuppliers}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a supplier" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {isLoadingSuppliers ? (
-                                                        <div className="flex items-center justify-center py-2">
-                                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                            <span>Loading suppliers...</span>
-                                                        </div>
-                                                    ) : loadedSuppliers.length > 0 ? (
-                                                        loadedSuppliers.map((supplier) => (
-                                                            <SelectItem key={supplier.id} value={String(supplier.id)}>
-                                                                {supplier.name}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <div className="py-2 text-center text-sm text-muted-foreground">
-                                                            No suppliers found
-                                                        </div>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="quantity"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Quantity</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="0" min="0" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="reorder_level"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Reorder Level</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="0" min="0" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
                         </div>
-
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
-                                    <FormControl>
-                                        <Textarea placeholder="Enter product description" className="h-20 resize-none" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>

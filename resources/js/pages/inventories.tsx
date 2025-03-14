@@ -85,9 +85,11 @@ interface InventoriesProps {
     categories: any[];
     brands: any[];
     suppliers: any[];
+    stores: any[];
 }
 
-export default function Inventories({ inventories, filters, categories, brands, suppliers }: InventoriesProps) {
+export default function Inventories({ inventories, filters, categories, brands, suppliers, stores }: InventoriesProps) {
+    
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inventory" />
@@ -112,6 +114,7 @@ export default function Inventories({ inventories, filters, categories, brands, 
                         categories={categories}
                         brands={brands}
                         suppliers={suppliers}
+                        stores={stores}
                     />
                 </Suspense>
             </div>

@@ -36,9 +36,10 @@ interface InventoriesIndexProps {
     categories?: any[];
     brands?: any[];
     suppliers?: any[];
+    stores?: any[];
 }
 
-export default function InventoriesIndex({ inventories, filters = {}, categories, brands, suppliers }: InventoriesIndexProps) {
+export default function InventoriesIndex({ inventories, filters = {}, categories, brands, suppliers, stores }: InventoriesIndexProps) {
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -225,6 +226,7 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                 categories={categories}
                 brands={brands}
                 suppliers={suppliers}
+                stores={stores}
             />
             
             <InventoryDelete 
