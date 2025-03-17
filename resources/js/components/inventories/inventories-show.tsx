@@ -76,11 +76,11 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
                     Back to Inventory
                 </Button>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleEdit}>
+                    <Button variant="outline" size="sm" onClick={handleEdit} className="hover:cursor-pointer">
                         <Edit className="mr-2 h-4 w-4" />
-                        Edit
+                        Edit Details
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={handleDelete}>
+                    <Button variant="destructive" size="sm" onClick={handleDelete} className="hover:cursor-pointer">
                         <Trash className="mr-2 h-4 w-4" />
                         Delete
                     </Button>

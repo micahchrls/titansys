@@ -108,6 +108,7 @@ class InventoryController extends Controller
                 'product_category_id' => 'required|exists:product_categories,id',
                 'product_brand_id' => 'required|exists:product_brands,id',
                 'supplier_id' => 'required|exists:suppliers,id',
+                'store_id' => 'required|exists:stores,id',
                 'quantity' => 'required|numeric|min:0',
                 'reorder_level' => 'required|numeric|min:0',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -121,7 +122,7 @@ class InventoryController extends Controller
             
             try {
                 $user = $request->user();
-                $storeId = $request->input('store_id', 1); // Get store ID from request or use default
+                $storeId = $validated['store_id']; // Get store ID from request
                 
                 // Generate SKU and create product
                 $sku = $this->generateSku($validated['product_name'], $validated['product_category_id']);
@@ -195,6 +196,7 @@ class InventoryController extends Controller
     {
         return Inventory::create([
             'product_id' => $productId,
+            'store_id' => $data['store_id'],
             'quantity' => $data['quantity'],
             'reorder_level' => $data['reorder_level'],
             'last_restocked' => now(),
@@ -226,6 +228,7 @@ class InventoryController extends Controller
         StockLog::create([
             'user_id' => $userId,
             'store_id' => $storeId,
+            'inventory_id' => $inventoryId,
             'action_type' => 'add',
             'description' => "Added new product to inventory: {$product->name} (SKU: {$product->sku})",
         ]);

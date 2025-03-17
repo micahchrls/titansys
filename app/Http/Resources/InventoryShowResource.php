@@ -34,8 +34,8 @@ class InventoryShowResource extends JsonResource
             'supplier' => $this->product->supplier,
             'supplier_name' => $this->product->supplier->name,
             'store_id' => $this->store->id,
-            'store' => $this->store,
             'store_name' => $this->store->name,
+            'store' => $this->store,
             'stock_movement' => $this->stockMovements->map(function ($stockMovement) {
                 return [
                     'id' => $stockMovement->id,

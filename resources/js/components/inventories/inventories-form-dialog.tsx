@@ -183,7 +183,7 @@ export default function InventoriesFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-5xl  ">
+            <DialogContent className="max-w-5xl sm:max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>Add New Inventory</DialogTitle>
                     <DialogDescription>Add a new product to your inventory. Fill out the form below with the product details.</DialogDescription>

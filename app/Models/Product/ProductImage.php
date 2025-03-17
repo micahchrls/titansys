@@ -30,29 +30,33 @@ class ProductImage extends Model
      * @param bool $isPrimary
      * @return self
      */
-    public static function uploadImage(int $productId, UploadedFile $image, bool $isPrimary = false): self
+    public static function uploadImage(int $productId, UploadedFile $image): self
     {
-        // Generate a unique filename
-        $originalName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension = $image->getClientOriginalExtension();
-        $fileName = $originalName . '_' . time() . '.' . $extension;
-        
-        // Store the file in the products directory
-        $path = $image->storeAs('products', $fileName, 'public');
-        
-        // If this is set as primary, reset other primary images for this product
-        if ($isPrimary) {
-            self::where('product_id', $productId);
+        try {
+            // Generate a unique filename
+            $originalName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
+            $extension = $image->getClientOriginalExtension();
+            $fileName = $originalName . '_' . time() . '.' . $extension;
+            
+            // Store the file in the products directory
+            $path = $image->storeAs('products', $fileName, 'public');
+            
+            if (!$path) {
+                throw new \Exception('Failed to store image file');
+            }
+            
+            // Create the image record
+            return self::create([
+                'product_id' => $productId,
+                'file_name' => $fileName,
+                'file_path' => $path,
+                'file_extension' => $extension,
+                'file_size' => $image->getSize(),
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error uploading product image: ' . $e->getMessage());
+            throw $e;
         }
-        
-        // Create the image record
-        return self::create([
-            'product_id' => $productId,
-            'file_name' => $fileName,
-            'file_path' => $path,
-            'file_extension' => $extension,
-            'file_size' => $image->getSize(),
-        ]);
     }
 
     /**

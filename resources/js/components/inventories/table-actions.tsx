@@ -8,6 +8,7 @@ interface TableActionsProps {
   onFilter?: () => void;
   onDownload?: () => void;
   onAdd?: () => void;
+  addButtonText?: string;
 }
 
 export function TableActions({
@@ -15,7 +16,8 @@ export function TableActions({
   onSearch,
   onFilter,
   onDownload,
-  onAdd
+  onAdd,
+  addButtonText = "Add Product"
 }: TableActionsProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -37,7 +39,7 @@ export function TableActions({
       </Button>
       <Button size="sm" onClick={onAdd}>
         <Plus className="mr-2 h-4 w-4" />
-        Add Product
+        {addButtonText}
       </Button>
     </div>
   );
