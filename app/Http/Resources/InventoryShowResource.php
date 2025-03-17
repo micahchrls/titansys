@@ -17,21 +17,26 @@ class InventoryShowResource extends JsonResource
         return [
             'id' => $this->id,
             'product_id' => $this->product_id,
-            'product_sku'=> $this->product->sku,
-            'product_name'=> $this->product->name,
-            'product_description'=> $this->product->description,
-            'product_price'=> $this->product->price,
-            'product_size'=> $this->product->size,
-            'product_category_id'=> $this->product->productCategory->id,
+            'product_sku' => $this->product->sku,
+            'product_name' => $this->product->name,
+            'product_description' => $this->product->description,
+            'product_price' => $this->product->price,
+            'product_size' => $this->product->size,
+            'product_category_id' => $this->product->productCategory->id,
             'product_category' => $this->product->productCategory->name,
-            'product_brand_id'=> $this->product->productBrand->id,
+            'product_brand_id' => $this->product->productBrand->id,
             'product_brand' => $this->product->productBrand->name,
             'product_image' => $this->product->productImage,
             'reorder_level' => $this->reorder_level,
             'last_restocked' => $this->last_restocked,
             'quantity' => $this->quantity,
+            'supplier_id' => $this->product->supplier->id,
             'supplier' => $this->product->supplier,
-            'stock_movement' => $this->stockMovement->map(function ($stockMovement) {
+            'supplier_name' => $this->product->supplier->name,
+            'store_id' => $this->store->id,
+            'store' => $this->store,
+            'store_name' => $this->store->name,
+            'stock_movement' => $this->stockMovements->map(function ($stockMovement) {
                 return [
                     'id' => $stockMovement->id,
                     'quantity' => $stockMovement->quantity,
@@ -40,6 +45,7 @@ class InventoryShowResource extends JsonResource
                     'updated_at' => $stockMovement->updated_at,
                 ];
             }),
+
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

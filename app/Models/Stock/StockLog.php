@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
+use App\Models\Inventory;
 use App\Models\Store\Store;
 
 class StockLog extends Model
@@ -15,6 +16,7 @@ class StockLog extends Model
 
     protected $fillable = [
         'user_id',
+        'inventory_id',
         'store_id',
         'action_type',
         'description',
@@ -38,5 +40,10 @@ class StockLog extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function inventory(): BelongsTo
+    {
+        return $this->belongsTo(Inventory::class);
     }
 }

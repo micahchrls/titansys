@@ -7,9 +7,11 @@ import { InventoryDetailTabs } from '@/components/inventories/inventory-detail-t
 import { useState } from 'react';
 import { InventoryEditDialog } from '@/components/inventories/inventory-edit-dialog';
 import { InventoryDeleteDialog } from '@/components/inventories/inventory-delete-dialog';
-import { Supplier, StockMovement, ProductImage } from '@/types';
+import { Supplier, StockMovement, ProductImage, Brand, Category, Store } from '@/types';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+
 interface InventoryShowProps {
     inventory: {
         data: {
@@ -37,10 +39,12 @@ interface InventoryShowProps {
 }
 
 export default function InventoriesShow({ inventory }: InventoryShowProps) {
+
+    const { brands, categories, suppliers, stores } = usePage<{ brands: Brand[]; categories: Category[]; suppliers: Supplier[]; stores: Store[] }>().props;
     const { data } = inventory;
+
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
     
     const handleEdit = () => {
         setIsEditDialogOpen(true);
@@ -111,6 +115,10 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 inventory={data}
+                brands={brands}
+                categories={categories}
+                suppliers={suppliers}
+                stores={stores}
             />
             
             {/* Delete Dialog */}

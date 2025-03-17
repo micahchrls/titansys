@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Product\Product;
 use App\Models\Stock\StockMovement;
+use App\Models\Stock\StockLog;
+use App\Models\Store\Store;
 
 class Inventory extends Model
 {
@@ -16,6 +18,7 @@ class Inventory extends Model
     
     protected $fillable = [
         'product_id',
+        'store_id',
         'quantity',
         'reorder_level',
         'last_restocked',
@@ -35,7 +38,16 @@ class Inventory extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function stockMovement(): HasMany {
+    public function stockMovements(): HasMany {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function stockLogs(): HasMany {
+        return $this->hasMany(StockLog::class);
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 }

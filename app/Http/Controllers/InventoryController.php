@@ -17,6 +17,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use App\Models\Store\Store;
 
 class InventoryController extends Controller
 {
@@ -43,13 +45,15 @@ class InventoryController extends Controller
             $categories = ProductCategory::orderBy('name')->get();
             $brands = ProductBrand::orderBy('name')->get();
             $suppliers = Supplier::orderBy('name')->get();
+            $stores = Store::orderBy('name')->get();
             
             return Inertia::render('inventories', [
                 'inventories' => $inventories,
                 'filters' => $request->only(['search']),
                 'categories' => $categories,
                 'brands' => $brands,
-                'suppliers' => $suppliers
+                'suppliers' => $suppliers,
+                'stores' => $stores
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching inventory: ' . $e->getMessage());
@@ -112,11 +116,11 @@ class InventoryController extends Controller
             Log::info('Validation passed', ['validated_data' => $validated]);
             
             // Start a database transaction
-            \DB::beginTransaction();
+            DB::beginTransaction();
             Log::info('Transaction started');
             
             try {
-                $user = auth()->user();
+                $user = $request->user();
                 $storeId = $request->input('store_id', 1); // Get store ID from request or use default
                 
                 // Generate SKU and create product
@@ -141,13 +145,13 @@ class InventoryController extends Controller
                 Log::info('Stock changes recorded');
                 
                 // Commit the transaction
-                \DB::commit();
+                DB::commit();
                 Log::info('Transaction committed successfully');
                 
                 return redirect()->route('inventories.index')->with('success', 'Product added to inventory successfully.');
             } catch (\Exception $e) {
                 // Rollback the transaction if anything fails
-                \DB::rollBack();
+                DB::rollBack();
                 Log::error('Error in transaction: ' . $e->getMessage(), [
                     'exception' => get_class($e),
                     'file' => $e->getFile(),
@@ -244,7 +248,11 @@ class InventoryController extends Controller
         try {
             $inventory = InventoryShowResource::make($inventory)->response()->getData(true);
             return Inertia::render('inventories/show', [
-                'inventory' => $inventory
+                'inventory' => $inventory,
+                'brands' => ProductBrand::orderBy('name')->get(),
+                'categories' => ProductCategory::orderBy('name')->get(),
+                'suppliers' => Supplier::orderBy('name')->get(),
+                'stores' => Store::orderBy('name')->get()
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching inventory: ' . $e->getMessage());
@@ -258,25 +266,94 @@ class InventoryController extends Controller
     public function update(Request $request, Inventory $inventory)
     {
         try {
+            Log::info('Update request received', [
+                'request_data' => $request->all(),
+                'inventory_id' => $inventory->id,
+                'inventory' => $inventory->toArray(),
+                'method' => $request->method(),
+                'url' => $request->url(),
+                'headers' => $request->header()
+            ]);
+            
             $validator = Validator::make($request->all(), [
+                'product_name' => 'required|string|max:255',
+                'product_sku' => 'required|string|max:100',
+                'product_description' => 'nullable|string',
+                'product_price' => 'required|numeric|min:0',
+                'product_size' => 'nullable|string|max:100',
+                'product_category_id' => 'required|integer|exists:product_categories,id',
+                'product_brand_id' => 'required|integer|exists:product_brands,id',
+                'supplier_id' => 'required|integer|exists:suppliers,id',
+                'store_id' => 'required|integer|exists:stores,id',
                 'quantity' => 'required|integer|min:0',
                 'reorder_level' => 'required|integer|min:0',
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation failed', ['errors' => $validator->errors()]);
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-
-            $inventory->update([
-                'quantity' => $request->quantity,
-                'reorder_level' => $request->reorder_level,
-                'last_restocked' => $request->has('restocked') ? now() : $inventory->last_restocked,
+            Log::info('Validation passed for inventory update', [
+                'inventory_id' => $inventory->id,
+                'user_id' => $request->user()->id,
+                'validated_data' => json_encode($validator->validated(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
             ]);
 
-            return redirect()->route('inventories.index')->with('success', 'Inventory updated successfully.');
+
+            // Start a database transaction
+            DB::beginTransaction();
+            
+            try {
+                // Update product details
+                $inventory->product->update([
+                    'name' => $request->product_name,
+                    'sku' => $request->product_sku,
+                    'description' => $request->product_description,
+                    'price' => $request->product_price,
+                    'size' => $request->product_size,
+                    'product_category_id' => $request->product_category_id,
+                    'product_brand_id' => $request->product_brand_id,
+                    'supplier_id' => $request->supplier_id,
+                ]);
+                
+                // Update inventory details
+                $inventory->update([
+                    'store_id' => $request->store_id,
+                    'quantity' => $request->quantity,
+                    'reorder_level' => $request->reorder_level,
+                    'last_restocked' => $request->has('restocked') ? now() : $inventory->last_restocked,
+                ]);
+
+                // Record the update in stock logs
+                $inventory->stockLogs()->create([
+                    'user_id' => $request->user()->id,
+                    'inventory_id' => $inventory->id,
+                    'store_id' => $inventory->store_id,
+                    'action_type' => 'update',
+                    'description' => "Updated inventory for product: {$inventory->product->name} (SKU: {$inventory->product->sku})",
+                ]);
+                
+                DB::commit();
+                
+                return redirect()->back()->with('success', 'Inventory updated successfully.');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error in transaction: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw $e;
+            }
         } catch (\Exception $e) {
-            Log::error('Error updating inventory: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update inventory.');
+            Log::error('Error updating inventory: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Failed to update inventory: ' . $e->getMessage());
         }
     }
 
@@ -287,9 +364,10 @@ class InventoryController extends Controller
     {
         try {
             // Record the deletion in stock logs
-            StockLog::create([
-                'user_id' => auth()->user()->id,
-                'store_id' => 1, // Using supplier as a fallback
+            $inventory->stockLogs()->create([
+                'user_id' => request()->user()->id,
+                'inventory_id' => $inventory->id,
+                'store_id' => $inventory->store_id,
                 'action_type' => 'remove',
                 'description' => "Removed product from inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})",
             ]);

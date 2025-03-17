@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->unsignedBigInteger('sale_id');
             $table->foreign('sale_id')->references('id')->on('sales')->onDelete('cascade');
-            $table->enum('action_type', ['sale_completed', 'sale_canceled', 'sale_refunded'])->notNullable();
+            $table->string('action_type')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
         });

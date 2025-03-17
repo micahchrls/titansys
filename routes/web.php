@@ -37,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/inventories', [InventoryController::class, 'store'])->name('inventories.store');
     Route::delete('/inventories/{inventory}', [InventoryController::class, 'destroy'])->name('inventories.destroy');
     Route::get('/inventories/{inventory}', [InventoryController::class, 'show'])->name('inventories.show');
+    Route::put('/inventories/{inventory}', [InventoryController::class, 'update'])->name('inventories.update');
 
     // Supplier routes here
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
