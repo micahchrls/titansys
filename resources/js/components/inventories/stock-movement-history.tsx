@@ -225,7 +225,7 @@ export function StockMovementHistory({
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Stock Movement History</h2>
-                <div className="relative w-64">
+                {/* <div className="relative w-64">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
                         placeholder="Search movements..." 
@@ -233,9 +233,9 @@ export function StockMovementHistory({
                         value={globalFilter ?? ""}
                         onChange={(e) => setGlobalFilter(e.target.value)}
                     />
-                </div>
+                </div> */}
             </div>
-            
+{/*             
             <Card className="border-dashed mb-4">
                 <CardContent className="pt-6">
                     <div className="flex flex-col gap-3">
@@ -332,7 +332,7 @@ export function StockMovementHistory({
                         )}
                     </div>
                 </CardContent>
-            </Card>
+            </Card> */}
 
             <div className="rounded-md border">
                 <Table>

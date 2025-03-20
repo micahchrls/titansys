@@ -109,11 +109,12 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
         }
     }, [inventory, form]);
 
-    console.log();
 
     const [imagePreview, setImagePreview] = useState<string | null>(
         inventory?.product_image ? `${window.location.origin}/storage/${inventory.product_image.file_path}` : null
     );
+
+    console.log('Inventory: ', inventory);
 
     const handleImageChange = (files: File[]) => {
         if (files.length > 0) {
