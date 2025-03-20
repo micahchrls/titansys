@@ -93,7 +93,7 @@ export interface User {
 }
 
 export interface Product {
-    id: number; 
+    id: number;
     sku: string;
     name: string;
     description: string;

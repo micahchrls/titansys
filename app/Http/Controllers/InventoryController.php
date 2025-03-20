@@ -9,6 +9,7 @@ use App\Models\Product\Product;
 use App\Models\Product\ProductCategory;
 use App\Models\Product\ProductBrand;
 use App\Models\Product\ProductImage;
+use App\Models\Store\Store;
 use App\Models\Stock\StockLog;
 use App\Models\Stock\StockMovement;
 use App\Models\Stock\StockTransaction;
@@ -18,7 +19,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use App\Models\Store\Store;
+use Illuminate\Support\Facades\Storage;
 
 class InventoryController extends Controller
 {
@@ -28,36 +29,55 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Inventory::with(['product', 'product.images', 'product.productCategory', 'product.productBrand', 'product.supplier', 'store']);
-
+            $query = Inventory::query();
+            
+            // Apply filters
             if ($request->has('search')) {
                 $search = $request->input('search');
                 $query->whereHas('product', function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%");
+                      ->orWhere('sku', 'like', "%{$search}%");
                 });
             }
-
-            $inventories = $query->latest()->paginate(10);
-            $inventories = InventoryResource::collection($inventories)->response()->getData(true);
-
-            // Get categories, brands, and suppliers for the form
-            $categories = ProductCategory::orderBy('name')->get();
-            $brands = ProductBrand::orderBy('name')->get();
-            $suppliers = Supplier::orderBy('name')->get();
-            $stores = Store::orderBy('name')->get();
             
-            return Inertia::render('inventories', [
-                'inventories' => $inventories,
+            $inventories = $query->with(['product', 'product.images', 'product.productCategory', 'product.productBrand', 'product.supplier', 'store'])->paginate(10);
+            $inventoriesData = InventoryResource::collection($inventories)->response()->getData(true);
+            
+            // Get related data for filters
+            $categories = ProductCategory::all();
+            $brands = ProductBrand::all();
+            $suppliers = Supplier::all();
+            $stores = Store::all();
+            
+            // Check if this is a partial reload request
+            $only = $request->header('X-Inertia-Partial-Data');
+            $only = $only ? explode(',', $only) : [];
+            
+            $data = [];
+            
+            // Only include the requested data for partial reloads
+            if (empty($only) || in_array('low_stock_alerts', $only)) {
+                $data['low_stock_alerts'] = $this->getLowStockAlerts();
+            }
+            
+            if (empty($only) || in_array('inventory_value_summary', $only)) {
+                $data['inventory_value_summary'] = $this->getInventoryValueSummary();
+            }
+            
+            // Add the rest of the data
+            $data = array_merge($data, [
+                'inventories' => $inventoriesData,
                 'filters' => $request->only(['search']),
                 'categories' => $categories,
                 'brands' => $brands,
                 'suppliers' => $suppliers,
-                'stores' => $stores
+                'stores' => $stores,
             ]);
+            
+            return Inertia::render('inventories', $data);
         } catch (\Exception $e) {
             Log::error('Error fetching inventory: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to fetch inventory.');
+            return redirect()->back()->with('error', 'Failed to load inventory data.');
         }
     }
 
@@ -73,21 +93,21 @@ class InventoryController extends Controller
         // Get category prefix (first 2 letters)
         $category = ProductCategory::find($categoryId);
         $categoryPrefix = substr(strtoupper($category->name), 0, 2);
-        
+
         // Get first 3 letters of product name
         $namePrefix = substr(strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $productName)), 0, 3);
-        
+
         // Get random alphanumeric suffix (4 characters)
         $randomSuffix = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
-        
+
         // Combine all parts to create SKU
         $sku = $categoryPrefix . '-' . $namePrefix . '-' . $randomSuffix;
-        
+
         // Check if SKU already exists and regenerate if needed
         if (Product::where('sku', $sku)->exists()) {
             return $this->generateSku($productName, $categoryId);
         }
-        
+
         return $sku;
     }
 
@@ -99,7 +119,7 @@ class InventoryController extends Controller
     {
         try {
             Log::info('Starting inventory creation process', ['request_data' => $request->all()]);
-            
+
             // Grab raw request content and parse if needed
             $rawContent = $request->getContent();
             Log::info('Raw request content:', [
@@ -113,7 +133,7 @@ class InventoryController extends Controller
                 Log::info('Multipart form data detected, checking POST data');
                 Log::info('POST data:', $_POST);
             }
-            
+
             $validated = Validator::make($request->all(), [
                 'product_name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -129,40 +149,40 @@ class InventoryController extends Controller
             ])->validate();
 
             Log::info('Validation passed', ['validated_data' => $validated]);
-            
+
             // Start a database transaction
             DB::beginTransaction();
             Log::info('Transaction started');
-            
+
             try {
                 $user = $request->user();
                 $storeId = $validated['store_id']; // Get store ID from request
-                
+
                 // Generate SKU and create product
                 $sku = $this->generateSku($validated['product_name'], $validated['product_category_id']);
                 Log::info('Generated SKU', ['sku' => $sku]);
-                
+
                 $product = $this->createProduct($validated, $sku);
                 Log::info('Product created', ['product_id' => $product->id, 'product' => $product->toArray()]);
-                
+
                 // Handle image upload if provided
                 if ($request->hasFile('image')) {
                     $productImage = $this->handleProductImage($product->id, $request->file('image'));
                     Log::info('Product image uploaded', ['image_id' => $productImage->id]);
                 }
-                
+
                 // Create inventory record
                 $inventory = $this->createInventory($product->id, $validated);
                 Log::info('Inventory created', ['inventory_id' => $inventory->id, 'inventory' => $inventory->toArray()]);
-                
+
                 // Record stock movement and transaction
                 $this->recordStockChanges($inventory->id, $user->id, $storeId, $validated['quantity'], $product);
                 Log::info('Stock changes recorded');
-                
+
                 // Commit the transaction
                 DB::commit();
                 Log::info('Transaction committed successfully');
-                
+
                 return redirect()->route('inventories.index')->with('success', 'Product added to inventory successfully.');
             } catch (\Exception $e) {
                 // Rollback the transaction if anything fails
@@ -185,7 +205,7 @@ class InventoryController extends Controller
             return redirect()->back()->with('error', 'Failed to create inventory: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Create a new product record
      */
@@ -202,7 +222,7 @@ class InventoryController extends Controller
             'supplier_id' => $data['supplier_id'],
         ]);
     }
-    
+
     /**
      * Create a new inventory record
      */
@@ -216,7 +236,7 @@ class InventoryController extends Controller
             'last_restocked' => now(),
         ]);
     }
-    
+
     /**
      * Record all stock-related changes
      */
@@ -228,7 +248,7 @@ class InventoryController extends Controller
             'quantity' => $quantity,
             'movement_type' => 'in',
         ]);
-        
+
         // Record stock transaction
         StockTransaction::create([
             'store_id' => $storeId,
@@ -265,7 +285,7 @@ class InventoryController extends Controller
             throw $e;
         }
     }
-    
+
 
     /**
      * Display the specified resource.
@@ -340,7 +360,7 @@ class InventoryController extends Controller
                     'errors' => $validator->errors(),
                     'request_data' => $request->all()
                 ]);
-                
+
                 // For AJAX requests, return a JSON response with validation errors
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
@@ -348,10 +368,10 @@ class InventoryController extends Controller
                         'errors' => $validator->errors()
                     ], 422);
                 }
-                
+
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-            
+
             Log::info('Validation passed for inventory update', [
                 'inventory_id' => $inventory->id,
                 'user_id' => $request->user()->id,
@@ -361,7 +381,7 @@ class InventoryController extends Controller
 
             // Start a database transaction
             DB::beginTransaction();
-            
+
             try {
                 // Extract all data from request manually to ensure it's available
                 $productName = $request->input('product_name');
@@ -374,7 +394,7 @@ class InventoryController extends Controller
                 $supplierId = $request->input('supplier_id');
                 $storeId = $request->input('store_id');
                 $reorderLevel = $request->input('reorder_level');
-                
+
                 Log::info('Extracted data from request:', [
                     'product_name' => $productName,
                     'product_sku' => $productSku,
@@ -397,7 +417,7 @@ class InventoryController extends Controller
                     'product_brand_id' => $productBrandId,
                     'supplier_id' => $supplierId,
                 ]);
-                
+
                 // Update inventory details - note we're not updating quantity here
                 // as that should be done through inventory movement functionality
                 $inventory->update([
@@ -415,7 +435,7 @@ class InventoryController extends Controller
                         'size' => $image->getSize(),
                         'product_id' => $inventory->product->id
                     ]);
-                    
+
                     try {
                         // Delete existing primary image if it exists
                         $existingImages = $inventory->product->images;
@@ -428,7 +448,7 @@ class InventoryController extends Controller
                                 $image->delete();
                             }
                         }
-                        
+
                         // Upload new image
                         $productImage = $this->handleProductImage($inventory->product->id, $request->file('image'));
                         Log::info('Product image updated successfully', [
@@ -449,7 +469,7 @@ class InventoryController extends Controller
                     Log::info('Removing product images', [
                         'product_id' => $inventory->product->id
                     ]);
-                    
+
                     $existingImages = $inventory->product->images;
                     if ($existingImages && count($existingImages) > 0) {
                         foreach ($existingImages as $image) {
@@ -469,7 +489,7 @@ class InventoryController extends Controller
                 } else {
                     Log::info('No image file or image info provided in the request');
                 }
-                
+
                 // Record the update in stock logs
                 $inventory->stockLogs()->create([
                     'user_id' => $request->user()->id,
@@ -478,31 +498,31 @@ class InventoryController extends Controller
                     'action_type' => 'update',
                     'description' => "Updated inventory for product: {$inventory->product->name} (SKU: {$inventory->product->sku})",
                 ]);
-                
+
                 DB::commit();
-                
+
                 // For AJAX requests, return a JSON response
                 if ($request->expectsJson() || $request->ajax()) {
                     // Reload the inventory with all necessary relationships
                     $inventory->load([
-                        'product', 
-                        'product.images', 
-                        'product.productCategory', 
-                        'product.productBrand', 
-                        'product.supplier', 
+                        'product',
+                        'product.images',
+                        'product.productCategory',
+                        'product.productBrand',
+                        'product.supplier',
                         'store'
                     ]);
-                    
+
                     // Use the resource to format the inventory data
                     $inventoryResource = new InventoryResource($inventory);
-                    
+
                     return response()->json([
                         'success' => true,
                         'message' => 'Inventory updated successfully.',
                         'inventory' => $inventoryResource
                     ]);
                 }
-                
+
                 return redirect()->back()->with('success', 'Inventory updated successfully.');
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -512,7 +532,7 @@ class InventoryController extends Controller
                     'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                
+
                 // For AJAX requests, return a JSON response with error details
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
@@ -520,7 +540,7 @@ class InventoryController extends Controller
                         'message' => 'Failed to update inventory: ' . $e->getMessage()
                     ], 500);
                 }
-                
+
                 throw $e;
             }
         } catch (\Exception $e) {
@@ -530,7 +550,7 @@ class InventoryController extends Controller
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             // For AJAX requests, return a JSON response with error details
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
@@ -538,7 +558,7 @@ class InventoryController extends Controller
                     'message' => 'Failed to update inventory: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->back()->with('error', 'Failed to update inventory: ' . $e->getMessage());
         }
     }
@@ -549,6 +569,8 @@ class InventoryController extends Controller
     public function destroy(Inventory $inventory)
     {
         try {
+            DB::beginTransaction();
+            
             // Record the deletion in stock logs
             $inventory->stockLogs()->create([
                 'user_id' => request()->user()->id,
@@ -565,11 +587,291 @@ class InventoryController extends Controller
                 'movement_type' => 'out',
             ]);
             
+            // Get product reference before deleting inventory
+            $product = $inventory->product;
+            
+            // Delete the inventory record
             $inventory->delete();
-            return redirect()->route('inventories.index')->with('success', 'Inventory deleted successfully.');
+            
+            // Delete the product and its related data
+            if ($product) {
+                // Delete product images if any
+                if ($product->images) {
+                    foreach ($product->images as $image) {
+                        Storage::disk('public')->delete($image->file_path);
+                        $image->delete();
+                    }
+                }
+                
+                $product->delete();
+            }
+            
+            DB::commit();
+            return redirect()->route('inventories.index')->with('success', 'Inventory and product deleted successfully.');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Error deleting inventory: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to delete inventory.');
+            return redirect()->back()->with('error', 'Failed to delete inventory and product.');
         }
     }
+
+
+    /**
+     * Process stock in transaction
+     * 
+     * @param Inventory $inventory
+     * @param int $quantity
+     * @param string $referenceType
+     * @param string|null $referenceNumber
+     * @param string|null $notes
+     * @return bool
+     */
+    public function stockIn(Request $request, Inventory $inventory)
+    {
+        try {
+
+            $validated = $request->validate([
+                'quantity' => 'required|numeric|min:0',
+            ]);
+
+            DB::beginTransaction();
+
+            // Update inventory quantity
+            $inventory->quantity += $validated['quantity'];
+            $inventory->save();
+
+            // Record stock movement
+            StockMovement::create([
+                'inventory_id' => $inventory->id,
+                'quantity' => $validated['quantity'],
+                'movement_type' => 'in',
+            ]);
+
+            // Log the action
+            $inventory->stockLogs()->create([
+                'user_id' => request()->user()->id,
+                'store_id' => $inventory->store_id,
+                'action_type' => 'stock_in',
+                'description' => "Added {$validated['quantity']} units to inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})"
+            ]);
+
+            DB::commit();
+            return redirect()->route('inventories.show', $inventory->id)->with('success', 'Stock in successful');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error processing stock in: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to add stock. Please try again.');
+        }
+    }
+
+    /**
+     * Process stock out transaction
+     * 
+     * @param Inventory $inventory
+     * @param int $quantity
+     * @param string $referenceType
+     * @param string|null $referenceNumber
+     * @param string|null $notes
+     * @return bool
+     */
+    public function stockOut(Request $request, Inventory $inventory)
+    {
+        try {
+
+            $validated = $request->validate([
+                'quantity' => 'required|numeric|min:0',
+            ]);
+
+            DB::beginTransaction();
+
+            // Update inventory quantity
+            $inventory->quantity -= $validated['quantity'];
+            $inventory->save();
+
+            // Record stock movement
+            StockMovement::create([
+                'inventory_id' => $inventory->id,
+                'quantity' => $validated['quantity'],
+                'movement_type' => 'out',
+            ]);
+
+            // Log the action
+            $inventory->stockLogs()->create([
+                'user_id' => request()->user()->id,
+                'store_id' => $inventory->store_id,
+                'action_type' => 'stock_out',
+                'description' => "Removed {$validated['quantity']} units from inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})"
+            ]);
+
+            DB::commit();
+            return redirect()->route('inventories.show', $inventory->id)->with('success', 'Stock out successful');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error processing stock in: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function getLowStockAlerts()
+    {
+        // Get items below reorder level
+        $lowStockItems = Inventory::with(['product', 'store'])
+            ->whereRaw('quantity <= reorder_level')
+            ->orderBy('quantity', 'asc')
+            ->get();
+
+        // Count items by severity
+        $criticalCount = $lowStockItems->where('quantity', '<=', DB::raw('reorder_level / 2'))->count();
+        $warningCount = $lowStockItems->count() - $criticalCount;
+        
+        // Get items that were low stock 14 days ago but still low stock now
+        $twoWeeksAgo = now()->subDays(14);
+        $persistentLowStock = StockLog::where('action_type', 'low_stock_alert')
+            ->where('created_at', '<=', $twoWeeksAgo)
+            ->pluck('inventory_id')
+            ->intersect($lowStockItems->pluck('id'))
+            ->count();
+        
+        // Get previous week's low stock count for trend calculation
+        $lastWeekCount = Inventory::whereRaw('quantity <= reorder_level')
+            ->where('updated_at', '<=', now()->subDays(7))
+            ->count();
+        
+        $change = $lowStockItems->count() - $lastWeekCount;
+        
+        return [
+            'count' => $lowStockItems->count(),
+            'critical_count' => $criticalCount,
+            'warning_count' => $warningCount,
+            'persistent_count' => $persistentLowStock,
+            'change' => $change,
+            'trend' => $change <= 0 ? 'down' : 'up'
+        ];
+    }
+
+    private function getInventoryValueSummary()
+    {
+        // Count total categories
+        $categoriesCount = ProductCategory::count();
+        $lastWeekCategoriesCount = ProductCategory::where('created_at', '<=', now()->subDays(7))->count();
+        $categoriesChange = $categoriesCount - $lastWeekCategoriesCount;
+        $categoriesChangePercentage = $lastWeekCategoriesCount > 0 
+            ? round(($categoriesChange / $lastWeekCategoriesCount) * 100, 1) 
+            : 0;
+
+        // Count total products
+        $productsCount = Product::count();
+        $lastWeekProductsCount = Product::where('created_at', '<=', now()->subDays(7))->count();
+        $productsChange = $productsCount - $lastWeekProductsCount;
+        $productsChangePercentage = $lastWeekProductsCount > 0 
+            ? round(($productsChange / $lastWeekProductsCount) * 100, 1) 
+            : 0;
+
+        // Get top selling products (last 30 days)
+        $topSellingCount = StockMovement::where('movement_type', 'out')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->distinct('inventory_id')
+            ->count();
+        $previousTopSellingCount = StockMovement::where('movement_type', 'out')
+            ->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])
+            ->distinct('inventory_id')
+            ->count();
+        $topSellingChange = $topSellingCount - $previousTopSellingCount;
+
+        return [
+            'categories' => [
+                'count' => $categoriesCount,
+                'change_percentage' => $categoriesChangePercentage,
+                'trend' => $categoriesChange >= 0 ? 'up' : 'down'
+            ],
+            'products' => [
+                'count' => $productsCount,
+                'change_percentage' => $productsChangePercentage,
+                'trend' => $productsChange >= 0 ? 'up' : 'down'
+            ],
+            'top_selling' => [
+                'count' => $topSellingCount,
+                'change' => $topSellingChange,
+                'trend' => $topSellingChange >= 0 ? 'up' : 'down'
+            ]
+        ];
+    }
+
+    private function getMovingPartsData()
+    {
+        // Get fastest moving parts (highest number of stock-out movements)
+        $fastestMoving = StockMovement::where('movement_type', 'out')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->selectRaw('inventory_id, SUM(quantity) as total_out')
+            ->groupBy('inventory_id')
+            ->orderBy('total_out', 'desc')
+            ->take(5)
+            ->with(['inventory.product', 'inventory.store'])
+            ->get()
+            ->map(function ($movement) {
+                $turnoverRate = $movement->total_out / max(1, $movement->inventory->quantity);
+                return [
+                    'id' => $movement->inventory_id,
+                    'product_name' => $movement->inventory->product->name,
+                    'product_sku' => $movement->inventory->product->sku,
+                    'quantity_sold' => $movement->total_out,
+                    'current_stock' => $movement->inventory->quantity,
+                    'turnover_rate' => round($turnoverRate, 2),
+                    'store_name' => $movement->inventory->store->name
+                ];
+            });
+
+        // Get slowest moving parts (inventory with oldest last stock-out date or no stock-out)
+        $slowestMoving = Inventory::with(['product', 'store', 'stockMovements' => function ($query) {
+                $query->where('movement_type', 'out')
+                    ->orderBy('created_at', 'desc');
+            }])
+            ->whereRaw('quantity > reorder_level') // Only consider items not in low stock
+            ->orderBy('updated_at', 'asc')
+            ->take(5)
+            ->get()
+            ->map(function ($inventory) {
+                $lastMovement = $inventory->stockMovements->first();
+                $daysInInventory = $lastMovement 
+                    ? now()->diffInDays($lastMovement->created_at) 
+                    : now()->diffInDays($inventory->created_at);
+                
+                return [
+                    'id' => $inventory->id,
+                    'product_name' => $inventory->product->name,
+                    'product_sku' => $inventory->product->sku,
+                    'current_stock' => $inventory->quantity,
+                    'days_in_inventory' => $daysInInventory,
+                    'last_movement_date' => $lastMovement ? $lastMovement->created_at->format('Y-m-d') : null,
+                    'store_name' => $inventory->store->name
+                ];
+            });
+
+        return [
+            'fastest_moving' => $fastestMoving,
+            'slowest_moving' => $slowestMoving
+        ];
+    }
+
+    private function getRecentStockMovements()
+    {
+        return StockMovement::with(['inventory.product', 'inventory.store', 'user'])
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function ($movement) {
+                return [
+                    'id' => $movement->id,
+                    'inventory_id' => $movement->inventory_id,
+                    'product_name' => $movement->inventory->product->name,
+                    'product_sku' => $movement->inventory->product->sku,
+                    'quantity' => $movement->quantity,
+                    'movement_type' => $movement->movement_type,
+                    'timestamp' => $movement->created_at->format('Y-m-d H:i:s'),
+                    'user_name' => $movement->user ? $movement->user->name : 'System',
+                    'store_name' => $movement->inventory->store->name
+                ];
+            });
+    }
+
 }

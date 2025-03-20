@@ -79,6 +79,7 @@ interface InventoriesProps {
             }>;
         };
     };
+
     filters?: {
         search?: string;
     };
@@ -89,7 +90,6 @@ interface InventoriesProps {
 }
 
 export default function Inventories({ inventories, filters, categories, brands, suppliers, stores }: InventoriesProps) {
-    
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inventory" />

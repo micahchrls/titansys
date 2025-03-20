@@ -44,8 +44,7 @@ class InventoryShowResource extends JsonResource
                     'created_at' => $stockMovement->created_at,
                     'updated_at' => $stockMovement->updated_at,
                 ];
-            }),
-
+            })->sortByDesc('created_at')->values()->all(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

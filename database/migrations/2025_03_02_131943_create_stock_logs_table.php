@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreign('store_id')->references('id')->on('stores')->onDelete('cascade');
             $table->unsignedBigInteger('inventory_id');
             $table->foreign('inventory_id')->references('id')->on('inventories')->onDelete('cascade');
-            $table->enum('action_type', ['purchase', 'stock_adjustment', 'stock_transfer', 'restock', 'add', 'remove', 'update'])->notNullable();
+            $table->enum('action_type', ['purchase', 'stock_adjustment', 'stock_transfer', 'restock', 'stock_in', 'stock_out', 'add', 'remove', 'update'])->notNullable();
             $table->text('description')->nullable();
             $table->timestamps();
         });

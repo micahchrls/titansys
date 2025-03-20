@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/react';
-import { ArrowLeft, Edit, Trash } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Edit, Trash } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { InventoryDetailTabs } from '@/components/inventories/inventory-detail-tabs';
@@ -11,6 +11,9 @@ import { Supplier, StockMovement, ProductImage, Brand, Category, Store } from '@
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
+import { StockInDialog } from '@/components/inventories/stock-in-dialog';
+import { StockOutDialog } from '@/components/inventories/stock-out-dialog';
+
 
 // Define consistent interface that matches the dialog components
 interface InventoryDisplayItem {
@@ -54,13 +57,23 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
     const [inventoryData, setInventoryData] = useState<InventoryDisplayItem>(data);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    
+    const [isStockInDialogOpen, setIsStockInDialogOpen] = useState(false);
+    const [isStockOutDialogOpen, setIsStockOutDialogOpen] = useState(false);
+
     const handleEdit = () => {
         setIsEditDialogOpen(true);
     };
 
-    const handleDelete = () => {
+    const handleDelete = () => { 
         setIsDeleteDialogOpen(true);
+    };
+
+    const handleStockIn = () => {
+        setIsStockInDialogOpen(true);
+    };
+
+    const handleStockOut = () => {
+        setIsStockOutDialogOpen(true);
     };
 
     const handleBack = () => {
@@ -97,11 +110,19 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
                     Back to Inventory
                 </Button>
                 <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleStockIn} className="hover:cursor-pointer text-green-600 hover:text-green-700">
+                        <ArrowDown className="mr-2 h-4 w-4 text-green-600" />
+                        Stock In
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleStockOut} className="hover:cursor-pointer text-amber-600 hover:text-amber-700">
+                        <ArrowDown className="mr-2 h-4 w-4 rotate-180 text-amber-600" />
+                        Stock Out
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleEdit} className="hover:cursor-pointer">
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Details
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={handleDelete} className="hover:cursor-pointer">
+                    <Button variant="outline" size="sm" onClick={handleDelete} className="hover:cursor-pointer text-red-600 hover:text-red-700">
                         <Trash className="mr-2 h-4 w-4" />
                         Delete
                     </Button>
@@ -149,6 +170,23 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
                 onOpenChange={setIsDeleteDialogOpen}
                 inventory={inventoryData as any}
                 onInventoryDeleted={handleInventoryDeleted}
+            />
+            
+            {/* Stock In Dialog */}
+            <StockInDialog
+                open={isStockInDialogOpen}
+                onOpenChange={setIsStockInDialogOpen}
+                inventoryId={inventoryData.id}
+                onStockUpdated={handleInventoryUpdated}
+            />
+            
+            {/* Stock Out Dialog */}
+            <StockOutDialog
+                open={isStockOutDialogOpen}
+                onOpenChange={setIsStockOutDialogOpen}
+                inventoryId={inventoryData.id}
+                currentQuantity={inventoryData.quantity}
+                onStockUpdated={handleInventoryUpdated}
             />
             
             <Toaster />
