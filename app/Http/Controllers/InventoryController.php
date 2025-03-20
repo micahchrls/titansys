@@ -28,7 +28,7 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Inventory::with('product');
+            $query = Inventory::with(['product', 'product.images', 'product.productCategory', 'product.productBrand', 'product.supplier', 'store']);
 
             if ($request->has('search')) {
                 $search = $request->input('search');
@@ -99,6 +99,20 @@ class InventoryController extends Controller
     {
         try {
             Log::info('Starting inventory creation process', ['request_data' => $request->all()]);
+            
+            // Grab raw request content and parse if needed
+            $rawContent = $request->getContent();
+            Log::info('Raw request content:', [
+                'content_type' => $request->header('Content-Type'),
+                'raw_length' => strlen($rawContent),
+                'raw_content_preview' => substr($rawContent, 0, 500) // Log first 500 chars
+            ]);
+
+            // If it's a multipart form, let's access post data differently
+            if (strpos($request->header('Content-Type'), 'multipart/form-data') !== false) {
+                Log::info('Multipart form data detected, checking POST data');
+                Log::info('POST data:', $_POST);
+            }
             
             $validated = Validator::make($request->all(), [
                 'product_name' => 'required|string|max:255',
@@ -237,9 +251,19 @@ class InventoryController extends Controller
     /**
      * Handle product image upload and creation
      */
-    private function handleProductImage(int $productId, $image, bool $isPrimary = true): ProductImage
+    private function handleProductImage(int $productId, $image): ProductImage
     {
-        return ProductImage::uploadImage($productId, $image, $isPrimary);
+        try {
+            return ProductImage::uploadImage($productId, $image);
+        } catch (\Exception $e) {
+            Log::error('Error in handleProductImage: ' . $e->getMessage(), [
+                'product_id' => $productId,
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            throw $e;
+        }
     }
     
 
@@ -269,15 +293,31 @@ class InventoryController extends Controller
     public function update(Request $request, Inventory $inventory)
     {
         try {
+            // Debug the request data
             Log::info('Update request received', [
                 'request_data' => $request->all(),
                 'inventory_id' => $inventory->id,
-                'inventory' => $inventory->toArray(),
+                'inventory' => $inventory,
                 'method' => $request->method(),
                 'url' => $request->url(),
-                'headers' => $request->header()
+                'headers' => $request->headers->all()
             ]);
-            
+
+            // Grab raw request content and parse if needed
+            $rawContent = $request->getContent();
+            Log::info('Raw request content:', [
+                'content_type' => $request->header('Content-Type'),
+                'raw_length' => strlen($rawContent),
+                'raw_content_preview' => substr($rawContent, 0, 500) // Log first 500 chars
+            ]);
+
+            // If it's a multipart form, let's access post data differently
+            if (strpos($request->header('Content-Type'), 'multipart/form-data') !== false) {
+                Log::info('Multipart form data detected, checking POST data');
+                Log::info('POST data:', $_POST);
+            }
+
+            // Match the validation rules to the fields sent from the front-end
             $validator = Validator::make($request->all(), [
                 'product_name' => 'required|string|max:255',
                 'product_sku' => 'required|string|max:100',
@@ -288,45 +328,148 @@ class InventoryController extends Controller
                 'product_brand_id' => 'required|integer|exists:product_brands,id',
                 'supplier_id' => 'required|integer|exists:suppliers,id',
                 'store_id' => 'required|integer|exists:stores,id',
-                'quantity' => 'required|integer|min:0',
                 'reorder_level' => 'required|integer|min:0',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'product_image_id' => 'nullable|integer',
+                'product_image_path' => 'nullable|string',
+                'remove_image' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
-                Log::error('Validation failed', ['errors' => $validator->errors()]);
+                Log::error('Validation failed', [
+                    'errors' => $validator->errors(),
+                    'request_data' => $request->all()
+                ]);
+                
+                // For AJAX requests, return a JSON response with validation errors
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => $validator->errors()
+                    ], 422);
+                }
+                
                 return redirect()->back()->withErrors($validator)->withInput();
             }
+            
             Log::info('Validation passed for inventory update', [
                 'inventory_id' => $inventory->id,
                 'user_id' => $request->user()->id,
-                'validated_data' => json_encode($validator->validated(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                'validated_data' => json_encode($validator->validated(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+                'has_file' => $request->hasFile('image') ? 'Yes' : 'No'
             ]);
-
 
             // Start a database transaction
             DB::beginTransaction();
             
             try {
-                // Update product details
-                $inventory->product->update([
-                    'name' => $request->product_name,
-                    'sku' => $request->product_sku,
-                    'description' => $request->product_description,
-                    'price' => $request->product_price,
-                    'size' => $request->product_size,
-                    'product_category_id' => $request->product_category_id,
-                    'product_brand_id' => $request->product_brand_id,
-                    'supplier_id' => $request->supplier_id,
-                ]);
+                // Extract all data from request manually to ensure it's available
+                $productName = $request->input('product_name');
+                $productSku = $request->input('product_sku');
+                $productDescription = $request->input('product_description');
+                $productPrice = $request->input('product_price');
+                $productSize = $request->input('product_size');
+                $productCategoryId = $request->input('product_category_id');
+                $productBrandId = $request->input('product_brand_id');
+                $supplierId = $request->input('supplier_id');
+                $storeId = $request->input('store_id');
+                $reorderLevel = $request->input('reorder_level');
                 
-                // Update inventory details
-                $inventory->update([
-                    'store_id' => $request->store_id,
-                    'quantity' => $request->quantity,
-                    'reorder_level' => $request->reorder_level,
-                    'last_restocked' => $request->has('restocked') ? now() : $inventory->last_restocked,
+                Log::info('Extracted data from request:', [
+                    'product_name' => $productName,
+                    'product_sku' => $productSku,
+                    'product_price' => $productPrice,
+                    'product_category_id' => $productCategoryId,
+                    'product_brand_id' => $productBrandId,
+                    'supplier_id' => $supplierId,
+                    'store_id' => $storeId,
+                    'reorder_level' => $reorderLevel
                 ]);
 
+                // Update product details
+                $inventory->product->update([
+                    'name' => $productName,
+                    'sku' => $productSku,
+                    'description' => $productDescription,
+                    'price' => $productPrice,
+                    'size' => $productSize,
+                    'product_category_id' => $productCategoryId,
+                    'product_brand_id' => $productBrandId,
+                    'supplier_id' => $supplierId,
+                ]);
+                
+                // Update inventory details - note we're not updating quantity here
+                // as that should be done through inventory movement functionality
+                $inventory->update([
+                    'store_id' => $storeId,
+                    'reorder_level' => $reorderLevel,
+                ]);
+
+                // Handle image upload if provided
+                if ($request->hasFile('image')) {
+                    // Log image details
+                    $image = $request->file('image');
+                    Log::info('Processing image upload', [
+                        'original_name' => $image->getClientOriginalName(),
+                        'mime_type' => $image->getMimeType(),
+                        'size' => $image->getSize(),
+                        'product_id' => $inventory->product->id
+                    ]);
+                    
+                    try {
+                        // Delete existing primary image if it exists
+                        $existingImages = $inventory->product->images;
+                        if ($existingImages && count($existingImages) > 0) {
+                            foreach ($existingImages as $image) {
+                                Log::info('Deleting existing image', [
+                                    'image_id' => $image->id,
+                                    'file_path' => $image->file_path
+                                ]);
+                                $image->delete();
+                            }
+                        }
+                        
+                        // Upload new image
+                        $productImage = $this->handleProductImage($inventory->product->id, $request->file('image'));
+                        Log::info('Product image updated successfully', [
+                            'product_id' => $inventory->product->id,
+                            'image_id' => $productImage->id,
+                            'file_path' => $productImage->file_path
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Error handling product image: ' . $e->getMessage(), [
+                            'exception' => get_class($e),
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine()
+                        ]);
+                        // Continue with the update even if image upload fails
+                    }
+                } else if ($request->boolean('remove_image')) {
+                    // If remove_image flag is set, delete all images without replacing them
+                    Log::info('Removing product images', [
+                        'product_id' => $inventory->product->id
+                    ]);
+                    
+                    $existingImages = $inventory->product->images;
+                    if ($existingImages && count($existingImages) > 0) {
+                        foreach ($existingImages as $image) {
+                            Log::info('Deleting image', [
+                                'image_id' => $image->id,
+                                'file_path' => $image->file_path
+                            ]);
+                            $image->delete();
+                        }
+                    }
+                } else if ($request->has('product_image_id') && $request->has('product_image_path')) {
+                    // If no new image but existing image info is provided, keep the existing image
+                    Log::info('Keeping existing product image', [
+                        'product_image_id' => $request->input('product_image_id'),
+                        'product_image_path' => $request->input('product_image_path')
+                    ]);
+                } else {
+                    Log::info('No image file or image info provided in the request');
+                }
+                
                 // Record the update in stock logs
                 $inventory->stockLogs()->create([
                     'user_id' => $request->user()->id,
@@ -338,6 +481,28 @@ class InventoryController extends Controller
                 
                 DB::commit();
                 
+                // For AJAX requests, return a JSON response
+                if ($request->expectsJson() || $request->ajax()) {
+                    // Reload the inventory with all necessary relationships
+                    $inventory->load([
+                        'product', 
+                        'product.images', 
+                        'product.productCategory', 
+                        'product.productBrand', 
+                        'product.supplier', 
+                        'store'
+                    ]);
+                    
+                    // Use the resource to format the inventory data
+                    $inventoryResource = new InventoryResource($inventory);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Inventory updated successfully.',
+                        'inventory' => $inventoryResource
+                    ]);
+                }
+                
                 return redirect()->back()->with('success', 'Inventory updated successfully.');
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -347,6 +512,15 @@ class InventoryController extends Controller
                     'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString()
                 ]);
+                
+                // For AJAX requests, return a JSON response with error details
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to update inventory: ' . $e->getMessage()
+                    ], 500);
+                }
+                
                 throw $e;
             }
         } catch (\Exception $e) {
@@ -356,6 +530,15 @@ class InventoryController extends Controller
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
+            
+            // For AJAX requests, return a JSON response with error details
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update inventory: ' . $e->getMessage()
+                ], 500);
+            }
+            
             return redirect()->back()->with('error', 'Failed to update inventory: ' . $e->getMessage());
         }
     }

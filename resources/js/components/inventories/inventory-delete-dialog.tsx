@@ -4,40 +4,74 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import { Brand, Category, Store, Supplier, ProductImage, StockMovement } from '@/types';
 
 interface InventoryItem {
     id: number;
+    product_id: number;
     product_name: string;
     product_sku: string;
+    product_description: string;
+    product_price: number;
+    product_size: string;
+    product_category: string;
+    product_brand: string;
+    product_category_id: number;
+    product_brand_id: number;
+    supplier_id: number;
+    store_id: number;
     quantity: number;
+    reorder_level: number;
+    last_restocked: string;
+    image_url: string | null;
+    product_image: ProductImage[];
+    supplier: Supplier[];
+    store: Store;
+    stock_movement?: StockMovement[];
+    created_at?: string;
+    updated_at?: string;
 }
 
 interface InventoryDeleteDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    inventory: InventoryItem | null;
+    inventory: InventoryItem;
+    onInventoryDeleted?: () => void;
 }
 
 export function InventoryDeleteDialog({ 
     open, 
     onOpenChange, 
-    inventory 
+    inventory, 
+    onInventoryDeleted 
 }: InventoryDeleteDialogProps) {
     
     const handleDelete = () => {
         if (inventory) {
-            router.delete(route('inventories.destroy', inventory.id), {
-                onSuccess: () => {
-                    onOpenChange(false);
-                    toast.success('Inventory item deleted successfully');
-                    // Navigate back to inventory index
-                    router.visit(route('inventories.index'));
-                },
-                onError: (errors) => {
-                    toast.error('Failed to delete inventory item');
-                    console.error(errors);
-                }
-            });
+            try {
+                router.delete(route('inventories.destroy', { inventory: inventory.id }), {
+                    onSuccess: () => {
+                        toast.success('Inventory deleted successfully');
+                        onOpenChange(false);
+                        
+                        // If callback is provided, call it instead of reloading
+                        if (onInventoryDeleted) {
+                            onInventoryDeleted();
+                        } else {
+                            // Fallback to redirect
+                            setTimeout(() => {
+                                window.location.href = route('inventories.index');
+                            }, 1000);
+                        }
+                    },
+                    onError: (errors) => {
+                        toast.error('Failed to delete inventory item');
+                        console.error(errors);
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+            }
         }
     };
 

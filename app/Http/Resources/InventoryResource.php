@@ -35,6 +35,10 @@ class InventoryResource extends JsonResource
             'quantity' => $this->quantity,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'product_image' => $this->product->images->first(),
+            'image_url' => $this->product->images->first() 
+                ? url('storage/' . $this->product->images->first()->file_path)
+                : null,
         ];
     }
 }

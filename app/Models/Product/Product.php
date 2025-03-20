@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Product\ProductBrand;
 use App\Models\Product\ProductCategory;
 use App\Models\Supplier;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Product\ProductImage;
 
 class Product extends Model
 {
@@ -41,8 +43,14 @@ class Product extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+    
     public function productImage(): HasOne
     {
         return $this->hasOne(ProductImage::class);
+    }
+    
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class);
     }
 }

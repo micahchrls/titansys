@@ -12,29 +12,36 @@ import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 
+// Define consistent interface that matches the dialog components
+interface InventoryDisplayItem {
+    id: number;
+    product_id: number;
+    product_name: string;
+    product_sku: string;
+    product_description: string;
+    product_price: number;
+    product_size: string;
+    product_category: string;
+    product_brand: string;
+    product_category_id: number;
+    product_brand_id: number;
+    supplier_id: number;
+    store_id: number;
+    quantity: number;
+    reorder_level: number;
+    last_restocked: string;
+    image_url: string | null;
+    product_image: ProductImage[];
+    supplier: Supplier[];
+    store: Store;
+    stock_movement: StockMovement[];
+    created_at: string;
+    updated_at: string;
+}
+
 interface InventoryShowProps {
     inventory: {
-        data: {
-            id: number;
-            product_id: number;
-            product_name: string;
-            product_sku: string;
-            product_description: string;
-            product_price: number;
-            product_size: string;
-            product_category_id: number;
-            product_category: string;
-            product_brand_id: number;
-            product_brand: string;
-            product_image: ProductImage[];
-            supplier: Supplier[];
-            quantity: number;
-            stock_movement: StockMovement[];
-            reorder_level: number;
-            last_restocked: string;
-            created_at: string;
-            updated_at: string;
-        }
+        data: InventoryDisplayItem;
     };
 }
 
@@ -43,6 +50,8 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
     const { brands, categories, suppliers, stores } = usePage<{ brands: Brand[]; categories: Category[]; suppliers: Supplier[]; stores: Store[] }>().props;
     const { data } = inventory;
 
+    // Create a state variable to hold the inventory data
+    const [inventoryData, setInventoryData] = useState<InventoryDisplayItem>(data);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     
@@ -58,10 +67,22 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
         router.visit(route('inventories.index'));
     };
 
+    // Handler for when inventory data is updated
+    const handleInventoryUpdated = (updatedInventory: any) => {
+        setInventoryData(updatedInventory.data || updatedInventory);
+        setIsEditDialogOpen(false);
+    };
+
+    // Handler for when inventory is deleted
+    const handleInventoryDeleted = () => {
+        // Redirect to the inventory index page
+        router.visit(route('inventories.index'));
+    };
+
     const StockStatusBadge = () => {
-        if (data.quantity <= 0) {
+        if (inventoryData.quantity <= 0) {
             return <Badge variant="destructive">Out of Stock</Badge>;
-        } else if (data.quantity <= data.reorder_level) {
+        } else if (inventoryData.quantity <= inventoryData.reorder_level) {
             return <Badge variant="outline" className="text-amber-600 border-amber-300">Low Stock</Badge>;
         } else {
             return <Badge variant="outline" className="text-green-600 border-green-300">In Stock</Badge>;
@@ -89,14 +110,14 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
 
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{data.product_name}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{inventoryData.product_name}</h1>
                     <div className="flex items-center gap-2">
-                        <p className="text-muted-foreground">SKU: {data.product_sku}</p>
+                        <p className="text-muted-foreground">SKU: {inventoryData.product_sku}</p>
                         <Button 
                             variant="ghost" 
                             size="sm"   
                             onClick={() => {
-                                navigator.clipboard.writeText(data.product_sku);
+                                navigator.clipboard.writeText(inventoryData.product_sku);
                                 toast.success("SKU copied to clipboard");
                             }}
                             className="hover:cursor-pointer"
@@ -108,24 +129,26 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
                 <StockStatusBadge />
             </div>
 
-            <InventoryDetailTabs data={data} />
+            <InventoryDetailTabs data={inventoryData} />
             
             {/* Edit Dialog */}
             <InventoryEditDialog
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
-                inventory={data}
+                inventory={inventoryData}
                 brands={brands}
                 categories={categories}
                 suppliers={suppliers}
                 stores={stores}
+                onInventoryUpdated={handleInventoryUpdated}
             />
             
             {/* Delete Dialog */}
             <InventoryDeleteDialog
                 open={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
-                inventory={data}
+                inventory={inventoryData as any}
+                onInventoryDeleted={handleInventoryDeleted}
             />
             
             <Toaster />

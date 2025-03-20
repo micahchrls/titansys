@@ -1,20 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileUpload } from '@/components/ui/file-upload';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Brand, Category, Store, Supplier } from '@/types';
+import { Brand, Category, Store, Supplier, ProductImage, StockMovement } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from '@inertiajs/react';
 import { Trash } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { FileUpload } from '../ui/file-upload';
 
 interface InventoryItem {
     id: number;
@@ -34,6 +33,12 @@ interface InventoryItem {
     reorder_level: number;
     last_restocked: string;
     image_url: string | null;
+    product_image: ProductImage[];
+    supplier: Supplier[];
+    store: Store;
+    stock_movement?: StockMovement[];
+    created_at?: string;
+    updated_at?: string;
 }
 
 const formSchema = z.object({
@@ -46,9 +51,10 @@ const formSchema = z.object({
     product_brand_id: z.coerce.number().positive('Brand is required'),
     supplier_id: z.coerce.number().positive('Supplier is required'),
     store_id: z.coerce.number().positive('Store is required'),
-    quantity: z.coerce.number().min(0, 'Quantity cannot be negative'),
+    quantity: z.coerce.number().min(0, 'Quantity cannot be negative').optional(),
     reorder_level: z.coerce.number().min(0, 'Reorder level cannot be negative'),
     image: z.instanceof(File).optional(),
+    remove_image: z.boolean().optional(),
 });
 
 interface InventoryEditDialogProps {
@@ -59,9 +65,10 @@ interface InventoryEditDialogProps {
     categories: Category[];
     suppliers: Supplier[];
     stores: Store[];
+    onInventoryUpdated?: (updatedInventory: any) => void;
 }
 
-export function InventoryEditDialog({ open, onOpenChange, inventory, brands, categories, suppliers, stores }: InventoryEditDialogProps) {
+export function InventoryEditDialog({ open, onOpenChange, inventory, brands, categories, suppliers, stores, onInventoryUpdated }: InventoryEditDialogProps) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -79,24 +86,12 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
         },
     });
 
-    // Log inventory data when component mounts
     useEffect(() => {
         if (inventory) {
-            console.log('Inventory data for edit dialog:', inventory);
-            console.log('Supplier ID:', inventory.supplier_id);
-            console.log('Store ID:', inventory.store_id);
-            console.log('Category ID:', inventory.product_category_id);
-            console.log('Brand ID:', inventory.product_brand_id);
-        }
-    }, [inventory]);
-
-    useEffect(() => {
-        if (inventory) {
-            console.log('Resetting form with inventory data:', inventory);
             form.reset({
                 product_name: inventory.product_name,
                 product_sku: inventory.product_sku,
-                product_description: inventory.product_description,
+                product_description: inventory.product_description || '',
                 product_price: inventory.product_price,
                 product_size: inventory.product_size,
                 product_category_id: inventory.product_category_id,
@@ -105,16 +100,22 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                 store_id: inventory.store_id,
                 quantity: inventory.quantity,
                 reorder_level: inventory.reorder_level,
+                remove_image: false,
             });
         }
     }, [inventory, form]);
 
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-    const [imagePreview, setImagePreview] = useState<string | null>(
-        inventory?.product_image ? `${window.location.origin}/storage/${inventory.product_image.file_path}` : null
-    );
-
-    console.log('Inventory: ', inventory);
+    // Initialize image preview when inventory data changes
+    useEffect(() => {
+        if (inventory?.product_image) {
+            const imageUrl = `${window.location.origin}/storage/${inventory.product_image.file_path}`;
+            setImagePreview(imageUrl);
+        } else {
+            setImagePreview(null);
+        }
+    }, [inventory]);
 
     const handleImageChange = (files: File[]) => {
         if (files.length > 0) {
@@ -132,39 +133,31 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
     const removeImage = () => {
         form.setValue('image', undefined);
         setImagePreview(null);
+        form.setValue('remove_image', true);
     };
 
     // Effect to initialize select fields when the dialog opens
     useEffect(() => {
         if (open && inventory) {
-            console.log('Dialog opened, initializing select fields');
+            // Set IDs directly
+            if (inventory.supplier_id) {
+                form.setValue('supplier_id', inventory.supplier_id);
+            }
 
-            // Force a small delay to ensure the form is ready
-            setTimeout(() => {
-                // Set IDs directly
-                if (inventory.supplier_id) {
-                    console.log('Setting supplier_id on dialog open:', inventory.supplier_id);
-                    form.setValue('supplier_id', inventory.supplier_id);
-                }
+            if (inventory.store_id) {
+                form.setValue('store_id', inventory.store_id);
+            }
 
-                if (inventory.store_id) {
-                    console.log('Setting store_id on dialog open:', inventory.store_id);
-                    form.setValue('store_id', inventory.store_id);
-                }
+            if (inventory.product_category_id) {
+                form.setValue('product_category_id', inventory.product_category_id);
+            }
 
-                if (inventory.product_category_id) {
-                    console.log('Setting product_category_id on dialog open:', inventory.product_category_id);
-                    form.setValue('product_category_id', inventory.product_category_id);
-                }
+            if (inventory.product_brand_id) {
+                form.setValue('product_brand_id', inventory.product_brand_id);
+            }
 
-                if (inventory.product_brand_id) {
-                    console.log('Setting product_brand_id on dialog open:', inventory.product_brand_id);
-                    form.setValue('product_brand_id', inventory.product_brand_id);
-                }
-
-                // Force a form state update
-                form.trigger();
-            }, 100);
+            // Force a form state update
+            form.trigger();
         }
     }, [open, inventory, form]);
 
@@ -189,13 +182,12 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                             // Validate form before submission
                             form.trigger().then((isValid) => {
                                 if (!isValid) {
-                                    console.error('Form validation failed');
+                                    console.error('Form validation failed', form.formState.errors);
                                     toast.error('Please fill in all required fields correctly');
                                     return;
                                 }
 
                                 const values = form.getValues();
-                                console.log('Form submitted with values:', values);
 
                                 // Check if any required fields are missing or empty
                                 const requiredFields = [
@@ -212,7 +204,9 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
 
                                 const missingFields = requiredFields.filter((field) => {
                                     const value = values[field as keyof typeof values];
-                                    return !value || (typeof value === 'string' && value.trim() === '');
+                                    // Convert value to string to check
+                                    const stringValue = value !== undefined && value !== null ? String(value) : '';
+                                    return stringValue.trim() === '' || (typeof value === 'number' && isNaN(value)) || value === 0; // For ID fields, 0 is invalid
                                 });
 
                                 if (missingFields.length > 0) {
@@ -223,7 +217,6 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
 
                                 if (inventory) {
                                     const url = route('inventories.update', inventory.id);
-                                    console.log('Sending PUT request to:', url);
 
                                     // Close the dialog immediately to prevent multiple submissions
                                     onOpenChange(false);
@@ -231,33 +224,115 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                     // Show a loading toast
                                     const toastId = toast.loading('Updating inventory...');
 
-                                    router.put(url, values, {
-                                        onSuccess: () => {
-                                            // Update the loading toast to success
-                                            toast.success('Inventory item updated successfully', {
+                                    // Create FormData for file upload
+                                    const formData = new FormData();
+
+                                    // Add method override for Laravel to recognize it as PUT
+                                    formData.append('_method', 'PUT');
+
+                                    // Add CSRF token
+                                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                                    if (csrfToken) {
+                                        formData.append('_token', csrfToken);
+                                    }
+
+                                    // Add all form values to FormData
+                                    Object.entries(values).forEach(([key, value]) => {
+                                        if (key === 'image' && value instanceof File) {
+                                            formData.append(key, value);
+                                        } else if (key === 'remove_image') {
+                                            // Always explicitly send the remove_image flag
+                                            formData.append(key, value ? '1' : '0');
+                                        } else if (value !== undefined && value !== null) {
+                                            formData.append(key, value.toString());
+                                        }
+                                    });
+
+                                    // Add existing product image details if available and no new image is selected
+                                    if (inventory?.product_image && inventory.product_image.length > 0 && !values.image && !values.remove_image) {
+                                        formData.append('product_image_id', inventory.product_image[0].id.toString());
+                                        formData.append('product_image_path', inventory.product_image[0].file_path);
+                                    }
+
+                                    // Use XMLHttpRequest directly instead of Inertia router for more control
+                                    // Create XMLHttpRequest to handle the form submission manually
+                                    const xhr = new XMLHttpRequest();
+                                    xhr.open('POST', url, true);
+
+                                    // Set up event handlers
+                                    xhr.onload = function () {
+                                        if (xhr.status >= 200 && xhr.status < 300) {
+                                            // Success
+                                            let successMessage = 'Inventory item updated successfully';
+                                            let updatedInventory = null;
+                                            
+                                            try {
+                                                const response = JSON.parse(xhr.responseText);
+                                                if (response.message) {
+                                                    successMessage = response.message;
+                                                }
+                                                
+                                                if (response.inventory) {
+                                                    updatedInventory = response.inventory;
+                                                }
+                                            } catch (e) {
+                                                console.error('Error parsing response:', e);
+                                            }
+                                            
+                                            toast.success(successMessage, {
                                                 id: toastId,
                                             });
-                                        },
-                                        onError: (errors) => {
-                                            console.error('Request failed with errors:', errors);
-                                            if (Object.keys(errors).length > 0) {
-                                                const errorMessages = Object.values(errors).flat().join(', ');
-                                                toast.error(`Failed to update inventory item: ${errorMessages}`, {
-                                                    id: toastId,
-                                                });
-                                            } else {
-                                                toast.error('Failed to update inventory item', {
-                                                    id: toastId,
-                                                });
+                                            
+                                            // Call the callback with the updated inventory
+                                            if (onInventoryUpdated && updatedInventory) {
+                                                onInventoryUpdated(updatedInventory);
                                             }
-                                        },
-                                        onFinish: () => {
-                                            // Reload the page after a short delay to ensure toast is visible
-                                            setTimeout(() => {
-                                                router.reload();
-                                            }, 1000);
-                                        },
-                                    });
+                                            
+                                            // No need to reload the page
+                                        } else {
+                                            // Error
+                                            console.error('Request failed with status:', xhr.status);
+                                            let errorMessage = 'Failed to update inventory item';
+                                            try {
+                                                const response = JSON.parse(xhr.responseText);
+                                                if (response.errors) {
+                                                    errorMessage = Object.values(response.errors).flat().join(', ');
+                                                } else if (response.message) {
+                                                    errorMessage = response.message;
+                                                }
+                                            } catch (e) {
+                                                console.error('Error parsing response:', e);
+                                            }
+                                            toast.error(`Failed to update inventory item: ${errorMessage}`, {
+                                                id: toastId,
+                                            });
+                                            
+                                            // Reopen the dialog to show errors
+                                            onOpenChange(true);
+                                        }
+                                    };
+
+                                    xhr.onerror = function () {
+                                        console.error('Request failed');
+                                        toast.error('Failed to update inventory item: Network error', {
+                                            id: toastId,
+                                        });
+                                        
+                                        // Reopen the dialog to show errors
+                                        onOpenChange(true);
+                                    };
+
+                                    // Set X-Requested-With header for Laravel to recognize it as an AJAX request
+                                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                                    // Set X-CSRF-Token header
+                                    if (csrfToken) {
+                                        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+                                    }
+                                    // Set X-Inertia header for Inertia.js
+                                    xhr.setRequestHeader('X-Inertia', 'true');
+
+                                    // Send the request
+                                    xhr.send(formData);
                                 }
                             });
                         }}
@@ -289,7 +364,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                     </div>
                                 )}
                             </div>
-                            <div className="md:col-span-2 space-y-6">
+                            <div className="space-y-6 md:col-span-2">
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
@@ -372,7 +447,6 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                                 <FormControl>
                                                     <Select
                                                         onValueChange={(value) => {
-                                                            console.log('Category selected:', value);
                                                             field.onChange(parseInt(value));
                                                         }}
                                                         value={field.value ? field.value.toString() : ''}
@@ -402,7 +476,6 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                                 <FormControl>
                                                     <Select
                                                         onValueChange={(value) => {
-                                                            console.log('Brand selected:', value);
                                                             field.onChange(parseInt(value));
                                                         }}
                                                         value={field.value ? field.value.toString() : ''}
@@ -435,7 +508,6 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                                 <FormControl>
                                                     <Select
                                                         onValueChange={(value) => {
-                                                            console.log('Supplier selected:', value);
                                                             field.onChange(parseInt(value));
                                                         }}
                                                         value={field.value ? field.value.toString() : ''}
@@ -466,7 +538,6 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                                 <FormControl>
                                                     <Select
                                                         onValueChange={(value) => {
-                                                            console.log('Store selected:', value);
                                                             field.onChange(parseInt(value));
                                                         }}
                                                         value={field.value ? field.value.toString() : ''}
