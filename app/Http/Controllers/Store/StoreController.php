@@ -9,7 +9,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\StoreResource;
-use App\Models\Store\StoreImage;
+use Illuminate\Support\Facades\DB;
 
 class StoreController extends Controller
 {
@@ -19,7 +19,7 @@ class StoreController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Store::with('storeImage');
+            $query = Store::query();
 
             if ($request->has('search')) {
                 $search = $request->input('search');
@@ -48,7 +48,7 @@ class StoreController extends Controller
     public function store(Request $request)
     {
         try {
-            Log::info('Store creation initiated', ['request_data' => $request->except('store_image')]);
+            Log::info('Store creation initiated', ['request_data' => $request->all()]);
             
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
@@ -56,7 +56,6 @@ class StoreController extends Controller
                 'location_address' => 'required|string|max:255',
                 'contact_number' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:255',
-                'store_image' => 'nullable|file|mimes:jpeg,jpg,png,gif,svg|max:5120',
             ]);
 
             if ($validator->fails()) {
@@ -67,33 +66,20 @@ class StoreController extends Controller
             }
 
             // Begin transaction
-            \DB::beginTransaction();
+            DB::beginTransaction();
             
             $store = Store::create($validator->validated());
             Log::info('Store created', ['store_id' => $store->id]);
-
-            if ($request->hasFile('store_image')) {
-                try {
-                    StoreImage::uploadImage($store->id, $request->file('store_image'), true);
-                    Log::info('Store image uploaded successfully', ['store_id' => $store->id]);
-                } catch (\Exception $e) {
-                    Log::error('Error uploading store image', [
-                        'store_id' => $store->id,
-                        'error' => $e->getMessage()
-                    ]);
-                    throw $e;
-                }
-            }
             
-            \DB::commit();
+            DB::commit();
             
             return redirect()->route('stores.index')->with('success', 'Store created successfully.');
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             Log::error('Error creating store', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except('store_image')
+                'request_data' => $request->all()
             ]);
             return redirect()->back()->with('error', 'Failed to create store.')->withInput();
         }
