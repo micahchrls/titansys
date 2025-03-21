@@ -2,7 +2,7 @@ import { BrandDelete } from '@/components/brands/brand-delete';
 import { BrandEdit } from '@/components/brands/brand-edit';
 import { BrandFormDialog } from '@/components/brands/brand-form-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardTitle, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -89,25 +89,25 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
                 const brand = row.original;
                 return (
                     <div className="space-x-2 text-right">
-    <Button
-        variant="outline"
-        size="sm"
-        className="text-primary hover:bg-primary/10 hover:text-primary"
-        onClick={() => handleEdit(brand)}
-    >
-        <Pencil className="h-4 w-4 mr-1" />
-        Edit
-    </Button>
-    <Button
-        variant="outline"
-        size="sm"
-        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-        onClick={() => handleDelete(brand)}
-    >
-        <Trash className="h-4 w-4 mr-1" />
-        Delete
-    </Button>
-</div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-primary hover:bg-primary/10 hover:text-primary"
+                            onClick={() => handleEdit(brand)}
+                        >
+                            <Pencil className="mr-1 h-4 w-4" />
+                            Edit
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleDelete(brand)}
+                        >
+                            <Trash className="mr-1 h-4 w-4" />
+                            Delete
+                        </Button>
+                    </div>
                 );
             },
         },
@@ -139,12 +139,7 @@ export default function BrandsIndex({ brands, filters = {} }: BrandsIndexProps) 
 
             <BrandEdit open={editDialogOpen} onOpenChange={setEditDialogOpen} brands={brands.data} selectedBrandId={selectedBrandId} />
 
-            <BrandDelete 
-            open={deleteDialogOpen} 
-            onOpenChange={setDeleteDialogOpen} 
-            brands={brands.data} 
-            selectedBrandId={selectedBrandId} 
-            />
+            <BrandDelete open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} brands={brands.data} selectedBrandId={selectedBrandId} />
 
             <Toaster />
         </div>
