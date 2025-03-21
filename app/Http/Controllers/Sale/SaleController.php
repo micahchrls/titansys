@@ -1,12 +1,16 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Sale;
 
 use App\Models\Sale\Sale;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use App\Models\Sale\SaleItem;
+use App\Models\Sale\SaleLog;
 
 class SaleController extends Controller
 {
@@ -41,7 +45,60 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        try {
+            $validator = Validator::make($request->all(), [
+                'store_id' => 'required|exists:stores,id',
+                'total_price' => 'required|numeric|min:0',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.unit_price' => 'required|numeric|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+
+            // Begin transaction
+            DB::beginTransaction();
+            
+            // Create the sale
+            $sale = Sale::create([
+                'store_id' => $request->store_id,
+                'user_id' => auth()->id(),
+                'total_price' => $request->total_price,
+                'status' => true
+            ]);
+            
+            // Create sale items
+            foreach ($request->items as $item) {
+                $saleItem = new SaleItem([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price']
+                ]);
+                $sale->items()->save($saleItem);
+            }
+            
+            // Create sale log
+            SaleLog::create([
+                'sale_id' => $sale->id,
+                'user_id' => auth()->id(),
+                'action_type' => 'create',
+                'description' => 'Sale created with ' . count($request->items) . ' items'
+            ]);
+            
+            DB::commit();
+
+            return redirect()->route('sales.index')->with('success', 'Sale created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error storing sale: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            return redirect()->back()->with('error', 'Failed to store sale.')->withInput();
+        }
     }
 
     /**
@@ -49,15 +106,15 @@ class SaleController extends Controller
      */
     public function show(Sale $sale)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Sale $sale)
-    {
-        //
+        try {
+            $sale = Sale::with('items', 'log')->findOrFail($sale->id);
+            return Inertia::render('Sales/Show', [
+                'sale' => $sale
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error showing sale: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to show sale.');
+        }
     }
 
     /**
@@ -65,7 +122,62 @@ class SaleController extends Controller
      */
     public function update(Request $request, Sale $sale)
     {
-        //
+        try {
+            $validator = Validator::make($request->all(), [
+                'store_id' => 'required|exists:stores,id',
+                'total_price' => 'required|numeric|min:0',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.unit_price' => 'required|numeric|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+
+            // Begin transaction
+            DB::beginTransaction();
+            
+            // Update the sale
+            $sale->update([
+                'store_id' => $request->store_id,
+                'total_price' => $request->total_price,
+                'status' => true
+            ]);
+            
+            // Delete existing sale items and create new ones
+            $sale->items()->delete();
+            
+            // Create new sale items
+            foreach ($request->items as $item) {
+                $saleItem = new SaleItem([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price']
+                ]);
+                $sale->items()->save($saleItem);
+            }
+            
+            // Create sale log
+            SaleLog::create([
+                'sale_id' => $sale->id,
+                'user_id' => auth()->id(),
+                'action_type' => 'update',
+                'description' => 'Sale updated with ' . count($request->items) . ' items'
+            ]);
+            
+            DB::commit();
+
+            return redirect()->route('sales.index')->with('success', 'Sale updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating sale: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            return redirect()->back()->with('error', 'Failed to update sale.')->withInput();
+        }
     }
 
     /**
@@ -73,6 +185,12 @@ class SaleController extends Controller
      */
     public function destroy(Sale $sale)
     {
-        //
+        try {
+            $sale->delete();
+            return redirect()->route('sales.index')->with('success', 'Sale deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error deleting sale: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete sale.');
+        }
     }
 }
