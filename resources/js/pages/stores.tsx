@@ -28,6 +28,7 @@ interface StoresPageProps {
 
 export default function Stores() {
     const { stores, filters } = usePage<StoresPageProps>().props;
+
     
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -41,7 +42,7 @@ export default function Stores() {
                         </p>
                     </div>
                 </div>
-                <StoresIndex stores={stores} initialSearch={filters.search} />
+                <StoresIndex stores={stores} filters={filters} />
             </div>
         </AppLayout>
     );

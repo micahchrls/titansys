@@ -3,14 +3,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Store } from '@/types/index';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
-import { Store } from '@/types';
 
 const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -19,68 +18,59 @@ const formSchema = z.object({
     email: z.string().email('Invalid email format').optional().or(z.literal('')),
 });
 
-interface StoreFormDialogProps {
+interface StoreEditProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    store?: Store | null;
-    onClose?: () => void;
+    stores: Store[];
+    selectedStoreId: number | null;
 }
 
-export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: StoreFormDialogProps) {
+export function StoreEdit({ open, onOpenChange, stores, selectedStoreId }: StoreEditProps) {
+    const selectedStore = stores.find((store) => store.id === selectedStoreId);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: store?.name || '',
-            location_address: store?.location_address || '',
-            contact_number: store?.contact_number || '',
-            email: store?.email || '',
+            name: selectedStore?.name || '',
+            location_address: selectedStore?.location_address || '',
+            contact_number: selectedStore?.contact_number || '',
+            email: selectedStore?.email || '',
         },
     });
 
-    // Reset form when dialog closes
+    // Reset form when dialog opens/closes or selected store changes
     useEffect(() => {
-        if (!open) {
-            form.reset();
-            if (onClose) onClose();
+        if (selectedStoreId !== null) {
+            const selectedStore = stores.find((store) => store.id === selectedStoreId);
+            if (selectedStore) {
+                form.reset({
+                    name: selectedStore.name,
+                    location_address: selectedStore.location_address || '',
+                    contact_number: selectedStore.contact_number || '',
+                    email: selectedStore.email || '',
+                });
+            }
         }
-    }, [open, form, onClose]);
+    }, [selectedStoreId, open, stores, form]);
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        if (store?.id) {
-            router.post(`/stores/${store.id}`, values, {
-                preserveState: true,
-                preserveScroll: true,
-                onSuccess: () => {
-                    form.reset();
-                    onOpenChange(false);
-                    toast.success('Store updated successfully');
-                },
-                onError: (errors) => {
-                    if (errors.message) {
-                        toast.error(errors.message);
-                    } else {
-                        toast.error('Failed to update store.');
-                    }
-                },
-            });
-        } else {
-            router.post('/stores', values, {
-                preserveState: true,
-                preserveScroll: true,
-                onSuccess: () => {
-                    form.reset();
-                    onOpenChange(false);
-                    toast.success('Store created successfully');
-                },
-                onError: (errors) => {
-                    if (errors.message) {
-                        toast.error(errors.message);
-                    } else {
-                        toast.error('Failed to create store.');
-                    }
-                },
-            });
-        }
+        if (!selectedStoreId) return;
+
+        router.put(route('stores.update', selectedStoreId), values, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                onOpenChange(false);
+                toast.success('Store updated successfully');
+            },
+            onError: (errors) => {
+                if (errors.message) {
+                    toast.error(errors.message);
+                } else {
+                    toast.error('Failed to update store.');
+                }
+            },
+        });
     }
 
     return (
@@ -89,12 +79,8 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <DialogHeader>
-                            <DialogTitle>{store ? 'Edit Store' : 'Create Store'}</DialogTitle>
-                            <DialogDescription>
-                                {store 
-                                    ? 'Update your store details below.' 
-                                    : 'Add a new store to your system.'}
-                            </DialogDescription>
+                            <DialogTitle>Edit Store</DialogTitle>
+                            <DialogDescription>Make changes to this store.</DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <FormField
@@ -102,9 +88,9 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="name">Name</FormLabel>
+                                        <FormLabel>Name</FormLabel>
                                         <FormControl>
-                                            <Input id="name" placeholder="Enter store name" {...field} />
+                                            <Input placeholder="Enter store name" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -115,9 +101,9 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
                                 name="location_address"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="location_address">Address</FormLabel>
+                                        <FormLabel>Address</FormLabel>
                                         <FormControl>
-                                            <Textarea id="location_address" placeholder="Enter store address" {...field} />
+                                            <Textarea placeholder="Enter store address" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -128,9 +114,9 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
                                 name="contact_number"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="contact_number">Contact Number</FormLabel>
+                                        <FormLabel>Contact Number</FormLabel>
                                         <FormControl>
-                                            <Input id="contact_number" placeholder="Enter contact number" {...field} />
+                                            <Input placeholder="Enter contact number" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -141,9 +127,9 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="email">Email</FormLabel>
+                                        <FormLabel>Email</FormLabel>
                                         <FormControl>
-                                            <Input id="email" placeholder="Enter email address" type="email" {...field} />
+                                            <Input placeholder="Enter email address" type="email" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -154,9 +140,8 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                 Cancel
                             </Button>
-                            <Button className="hover:cursor-pointer" type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {store ? 'Update' : 'Create'}
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                Save Changes
                             </Button>
                         </DialogFooter>
                     </form>

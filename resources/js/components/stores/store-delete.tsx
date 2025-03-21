@@ -1,5 +1,12 @@
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Store } from '@/types/index';
 import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
@@ -11,14 +18,11 @@ interface StoreDeleteProps {
     selectedStoreId: number | null;
 }
 
-export default function StoreDelete({ open, onOpenChange, stores, selectedStoreId }: StoreDeleteProps) {
-    console.log('Stores: ', stores);
+export function StoreDelete({ open, onOpenChange, stores, selectedStoreId }: StoreDeleteProps) {
     const selectedStore = stores.find((store) => store.id === selectedStoreId);
 
     const handleDelete = () => {
         if (!selectedStoreId) return;
-
-        console.log('Selected Store ID: ', selectedStoreId);
 
         router.delete(route('stores.destroy', selectedStoreId), {
             preserveState: true,
@@ -43,15 +47,15 @@ export default function StoreDelete({ open, onOpenChange, stores, selectedStoreI
                 <DialogHeader>
                     <DialogTitle>Delete Store</DialogTitle>
                     <DialogDescription>
-                        This action cannot be undone. This will permanently delete the store <strong>{selectedStore?.name}</strong> and remove all
-                        associated data from our servers.
+                        This action cannot be undone. This will permanently delete the store{" "}
+                        <strong>{selectedStore?.name}</strong> and remove the data from our servers.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} >
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button type="button" variant="destructive" onClick={handleDelete} className="hover:cursor-pointer">
+                    <Button type="button" variant="destructive" onClick={handleDelete}>
                         Delete
                     </Button>
                 </DialogFooter>
