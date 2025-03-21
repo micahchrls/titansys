@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Store\Store;
 use App\Models\Sale\SaleItem;
 use App\Models\Sale\SaleLog;
+use Illuminate\Support\Str;
 
 class Sale extends Model
 {
@@ -21,10 +22,6 @@ class Sale extends Model
         'user_id',
         'total_price',
         'status',
-    ];
-
-    protected $casts = [
-        'status' => 'boolean',
     ];
 
 
@@ -43,10 +40,16 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
-    public function log(): HasMany
+    public function logs(): HasMany
     {
         return $this->hasMany(SaleLog::class);
     }
 
-
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($sale) {
+            $sale->sale_code = 'SALE-' . strtoupper(Str::random(8));
+        });
+    }
 }
