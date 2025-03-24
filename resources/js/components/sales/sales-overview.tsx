@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowDownRight, ArrowUpRight, DollarSign, ShoppingCart, TrendingUp, Users } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, DollarSign, ShoppingCart, TrendingUp, Users, PesoSign } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from 'lucide-react';
@@ -14,6 +14,18 @@ interface PageProps {
         unique_customers: number;
     };
 }
+
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description?: string;
+  icon: any;
+  trend?: "up" | "down" | "none";
+  trendIcon?: any;
+  iconColor?: string;
+}
+
 
 export function SalesOverview() {
     const { sales } = usePage().props as unknown as PageProps;
@@ -32,18 +44,18 @@ export function SalesOverview() {
         });
     };
     
-    const stats = [
+    const stats: StatCardProps[] = [
         {
             title: 'Total Revenue',
-            value: '$85,432.89',
-            icon: DollarSign,
+            value: `$${sales?.total_revenue?.toLocaleString() || '0'}`,
+            icon: PesoSign,
             description: '+15.3% from last month',
             trend: 'up',
             trendIcon: ArrowUpRight,
         },
         {
             title: 'Total Orders',
-            value: '432',
+            value: sales?.total_orders?.toLocaleString() || '0',
             icon: ShoppingCart,
             description: '+8.2% from last month',
             trend: 'up',
@@ -51,7 +63,7 @@ export function SalesOverview() {
         },
         {
             title: 'Average Order Value',
-            value: '$197.76',
+            value: `$${sales?.average_order_value?.toLocaleString() || '0'}`,
             icon: TrendingUp,
             description: '+5.8% from last month',
             trend: 'up',
@@ -59,7 +71,7 @@ export function SalesOverview() {
         },
         {
             title: 'Unique Customers',
-            value: '245',
+            value: sales?.unique_customers?.toLocaleString() || '0',
             icon: Users,
             description: '-2.3% from last month',
             trend: 'down',
