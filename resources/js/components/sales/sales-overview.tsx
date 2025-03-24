@@ -48,7 +48,7 @@ export function SalesOverview() {
         {
             title: 'Total Revenue',
             value: `$${sales?.total_revenue?.toLocaleString() || '0'}`,
-            icon: PesoSign,
+            icon: DollarSign,
             description: '+15.3% from last month',
             trend: 'up',
             trendIcon: ArrowUpRight,
