@@ -6,11 +6,16 @@ use App\Models\Sale\Sale;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Sale\SaleItem;
 use App\Models\Sale\SaleLog;
+use App\Http\Resources\SaleResource;
+use App\Models\Inventory;
+use App\Models\Stock\StockMovement;
+use App\Models\Stock\StockLog;
 
 class SaleController extends Controller
 {
@@ -18,28 +23,30 @@ class SaleController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
-        try {
-            $query = Sale::query();
+{
+    try {
+        $query = Sale::query();
 
-            if ($request->has('search')) {
-                $search = $request->input('search');
-                $query->where(function ($q) use ($search) {
-                    $q->where('id', 'like', "%{$search}%");
-                });
-            }
-
-            $sales = $query->latest()->paginate(10);
-
-            return Inertia::render('sales', [
-                'sales' => $sales,
-                'filters' => $request->only(['search'])
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error fetching sales: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to fetch sales.');
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('sale_code', 'like', "%{$search}%");
+            });
         }
+
+        $sales = $query->latest()->paginate(10);
+        $sales = SaleResource::collection($sales)->response()->getData(true);
+
+        return Inertia::render('sales', [
+            'sales' => $sales,
+            'filters' => $request->only(['search'])
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error fetching sales: ' . $e->getMessage());
+        return redirect()->back()->with('error', 'Failed to fetch sales.');
     }
+}
     /**
      * Store a newly created resource in storage.
      */
@@ -62,28 +69,72 @@ class SaleController extends Controller
             // Begin transaction
             DB::beginTransaction();
             
+            // Check inventory availability for all items before proceeding
+            foreach ($request->items as $item) {
+                $inventory = Inventory::where('product_id', $item['product_id'])
+                    ->where('store_id', $request->store_id)
+                    ->first();
+                
+                if (!$inventory) {
+                    DB::rollBack();
+                    return redirect()->back()->with('error', 'Product not found in inventory.')->withInput();
+                }
+                
+                if ($inventory->quantity < $item['quantity']) {
+                    $productName = $inventory->product->name;
+                    $availableQty = $inventory->quantity;
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Insufficient stock for product '{$productName}'. Available: {$availableQty}.")->withInput();
+                }
+            }
+            
             // Create the sale
             $sale = Sale::create([
                 'store_id' => $request->store_id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'total_price' => $request->total_price,
                 'status' => true
             ]);
             
-            // Create sale items
+            // Create sale items and update inventory
             foreach ($request->items as $item) {
+                // Create sale item
                 $saleItem = new SaleItem([
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price']
                 ]);
                 $sale->items()->save($saleItem);
+                
+                // Update inventory (decrease quantity)
+                $inventory = Inventory::where('product_id', $item['product_id'])
+                    ->where('store_id', $request->store_id)
+                    ->first();
+                
+                $inventory->quantity -= $item['quantity'];
+                $inventory->save();
+                
+                // Record stock movement
+                StockMovement::create([
+                    'inventory_id' => $inventory->id,
+                    'quantity' => $item['quantity'],
+                    'movement_type' => 'out',
+                ]);
+                
+                // Log the stock action
+                StockLog::create([
+                    'user_id' => Auth::id(),
+                    'store_id' => $request->store_id,
+                    'inventory_id' => $inventory->id,
+                    'action_type' => 'stock_out',
+                    'description' => "Removed {$item['quantity']} units from inventory due to sale transaction"
+                ]);
             }
             
             // Create sale log
             SaleLog::create([
                 'sale_id' => $sale->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'action_type' => 'create',
                 'description' => 'Sale created with ' . count($request->items) . ' items'
             ]);
@@ -162,7 +213,7 @@ class SaleController extends Controller
             // Create sale log
             SaleLog::create([
                 'sale_id' => $sale->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'action_type' => 'update',
                 'description' => 'Sale updated with ' . count($request->items) . ' items'
             ]);

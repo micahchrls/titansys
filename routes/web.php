@@ -10,7 +10,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\Store\StoreController;
-
+use App\Http\Controllers\Sale\SaleController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -21,9 +21,10 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
-    Route::get('sales', function () {
-        return Inertia::render('sales');
-    })->name('sales');
+    Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
+    Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
+    Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
 
     Route::get('stores', [StoreController::class, 'index'])->name('stores.index');
     Route::post('stores', [StoreController::class, 'store'])->name('stores.store');

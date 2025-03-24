@@ -24,14 +24,6 @@ class SaleLog extends Model
         'description',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'action_type' => 'enum',
-    ];
 
     /**
      * Get the user that owns the SaleLog

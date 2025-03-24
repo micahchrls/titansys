@@ -175,3 +175,28 @@ export interface StoreImage {
     updated_at: string;
     [key: string]: unknown;
 }
+
+export interface Sale {
+    id: number;
+    sale_code: string;
+    store_id: number;
+    store_name: string;
+    user_id: number;
+    user_name: string;
+    total_price: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
+export interface SaleItem {
+    id: number;
+    sale_id: number;
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}

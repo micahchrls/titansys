@@ -96,8 +96,7 @@ export function InventoryOverview() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-lg font-semibold">Inventory Overview</h2>
+      <div className="flex justify-end items-center mb-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
