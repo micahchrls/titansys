@@ -69,6 +69,12 @@ class SaleController extends Controller
         }
     }
 
+    public function create()
+    {
+        return Inertia::render('sales/create');
+    }
+    
+
     /**
      * Store a newly created resource in storage.
      */

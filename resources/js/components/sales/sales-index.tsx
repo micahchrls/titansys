@@ -4,7 +4,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Sale } from '@/types/index';
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Pencil, Plus, Trash } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -123,17 +123,18 @@ export default function SalesIndex({ sales, pagination, filters = {} }: SalesInd
             },
         },
     ];
-
-    console.log(pagination);
     
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-xl font-bold">Sales</CardTitle>
-                    <Button size="sm" onClick={() => setFormDialogOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Sale
+
+                    <Button variant="default" size="sm" asChild>
+                        <Link href="/sales/create" className="flex items-center">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Order
+                        </Link>
                     </Button>
                 </CardHeader>
                 <CardContent>
