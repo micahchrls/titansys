@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Sale;
 
-use App\Models\Sale\Sale;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SaleResource;
+use App\Models\Sale\Sale;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Sale\SaleItem;
 use App\Models\Sale\SaleLog;
-use App\Http\Resources\SaleResource;
 use App\Models\Inventory;
 use App\Models\Stock\StockMovement;
 use App\Models\Stock\StockLog;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class SaleController extends Controller
 {
@@ -23,30 +23,52 @@ class SaleController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-{
-    try {
-        $query = Sale::query();
+    {
+        try {
+            $query = Sale::query();
+    
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('sale_code', 'like', "%{$search}%");
+                });
+            }
+    
+            $sales = $query->latest()->paginate(10);
 
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('id', 'like', "%{$search}%")
-                  ->orWhere('sale_code', 'like', "%{$search}%");
-            });
+            $sales = SaleResource::collection($sales)->response()->getData(true);
+
+            // Check if this is a partial reload request
+            $only = $request->header('X-Inertia-Partial-Data');
+            $only = $only ? explode(',', $only) : [];
+
+            $data = [];
+
+            // Prepare stats data
+            $statsData = [];
+            
+            if (empty($only) || in_array('stats', $only)) {
+                $statsData = [
+                    'total_revenue' => $this->getTotalRevenue(),
+                    'total_orders' => $this->getTotalOrders(),
+                    'average_order_value' => $this->getAverageOrderValue(),
+                    'sales_trend' => $this->getSalesTrend(),
+                ];
+            }
+
+            $data = array_merge($data, [
+                'sales' => $sales,
+                'filters' => $request->only(['search']),
+                'stats' => $statsData
+            ]);
+
+            return Inertia::render('sales', $data);
+        } catch (\Exception $e) {
+            Log::error('Error fetching sales: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to fetch sales.');
         }
-
-        $sales = $query->latest()->paginate(10);
-        $sales = SaleResource::collection($sales)->response()->getData(true);
-
-        return Inertia::render('sales', [
-            'sales' => $sales,
-            'filters' => $request->only(['search'])
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Error fetching sales: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Failed to fetch sales.');
     }
-}
+
     /**
      * Store a newly created resource in storage.
      */
@@ -159,7 +181,7 @@ class SaleController extends Controller
     {
         try {
             $sale = Sale::with('items', 'log')->findOrFail($sale->id);
-            return Inertia::render('Sales/Show', [
+            return \Inertia\Inertia::render('Sales/Show', [
                 'sale' => $sale
             ]);
         } catch (\Exception $e) {
@@ -242,6 +264,172 @@ class SaleController extends Controller
         } catch (\Exception $e) {
             Log::error('Error deleting sale: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to delete sale.');
+        }
+    }
+
+    /**
+     * Calculate total revenue from sales
+     * 
+     * @return array
+     */
+    private function getTotalRevenue(): array
+    {
+        try {
+            // Get current month's revenue
+            $currentMonthRevenue = Sale::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('total_price');
+                
+            // Get previous month's revenue for comparison
+            $lastMonthRevenue = Sale::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->sum('total_price');
+                
+            $change = $lastMonthRevenue > 0 
+                ? round((($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
+                : 0;
+                
+            return [
+                'value' => round($currentMonthRevenue, 2),
+                'change_percentage' => $change,
+                'trend' => $change >= 0 ? 'up' : 'down'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error calculating total revenue: ' . $e->getMessage());
+            return [
+                'value' => 0,
+                'change_percentage' => 0,
+                'trend' => 'none'
+            ];
+        }
+    }
+    
+    /**
+     * Get total number of orders/sales
+     * 
+     * @return array
+     */
+    private function getTotalOrders(): array
+    {
+        try {
+            // Count current month's orders
+            $currentMonthOrders = Sale::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+                
+            // Count previous month's orders
+            $lastMonthOrders = Sale::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->count();
+                
+            $change = $lastMonthOrders > 0 
+                ? round((($currentMonthOrders - $lastMonthOrders) / $lastMonthOrders) * 100, 1)
+                : 0;
+                
+            return [
+                'value' => $currentMonthOrders,
+                'change_percentage' => $change,
+                'trend' => $change >= 0 ? 'up' : 'down'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error calculating total orders: ' . $e->getMessage());
+            return [
+                'value' => 0,
+                'change_percentage' => 0,
+                'trend' => 'none'
+            ];
+        }
+    }
+    
+    /**
+     * Calculate average order value
+     * 
+     * @return array
+     */
+    private function getAverageOrderValue(): array
+    {
+        try {
+            // Calculate current month's average order value
+            $currentMonthSales = Sale::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->get();
+                
+            $currentMonthAverage = $currentMonthSales->count() > 0
+                ? $currentMonthSales->sum('total_price') / $currentMonthSales->count()
+                : 0;
+                
+            // Calculate previous month's average order value
+            $lastMonthSales = Sale::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->get();
+                
+            $lastMonthAverage = $lastMonthSales->count() > 0
+                ? $lastMonthSales->sum('total_price') / $lastMonthSales->count()
+                : 0;
+                
+            $change = $lastMonthAverage > 0 
+                ? round((($currentMonthAverage - $lastMonthAverage) / $lastMonthAverage) * 100, 1)
+                : 0;
+                
+            return [
+                'value' => round($currentMonthAverage, 2),
+                'change_percentage' => $change,
+                'trend' => $change >= 0 ? 'up' : 'down'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error calculating average order value: ' . $e->getMessage());
+            return [
+                'value' => 0,
+                'change_percentage' => 0,
+                'trend' => 'none'
+            ];
+        }
+    }
+    
+    /**
+     * Get the sales trend data for current month.
+     *
+     * @return array
+     */
+    private function getSalesTrend()
+    {
+        try {
+            // Get current month's total sales
+            $currentMonthSales = Sale::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('total_price');
+
+            // Get previous month's total sales
+            $previousMonthSales = Sale::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->sum('total_price');
+
+            // Calculate change percentage
+            $changePercentage = 0;
+            if ($previousMonthSales > 0) {
+                $changePercentage = round((($currentMonthSales - $previousMonthSales) / $previousMonthSales) * 100, 2);
+            }
+
+            // Determine trend direction
+            $trend = 'none';
+            if ($changePercentage > 0) {
+                $trend = 'up';
+            } elseif ($changePercentage < 0) {
+                $trend = 'down';
+            }
+
+            return [
+                'value' => round($currentMonthSales, 2),
+                'change_percentage' => $changePercentage,
+                'trend' => $trend
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Error calculating sales trend: ' . $e->getMessage());
+            return [
+                'value' => 0,
+                'change_percentage' => 0,
+                'trend' => 'none'
+            ];
         }
     }
 }

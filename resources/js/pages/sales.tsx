@@ -11,9 +11,29 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Sales() {
-    const { sales } = usePage<{ sales: Sale[] }>().props;
-    console.log(sales);
+interface SalesProps {
+    sales: {
+        data: Sale[];
+        meta: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+            links: Array<{
+                url: string | null;
+                label: string;
+                active: boolean;
+            }>;
+        };
+    };
+
+    filters?: {
+        search?: string;
+    };
+}
+
+export default function Sales({ sales, filters }: SalesProps) {
+    
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Sales" />
@@ -25,7 +45,11 @@ export default function Sales() {
                     </div>
                 </div>
                 <SalesOverview />
-                <SalesIndex sales={sales} />
+                <SalesIndex 
+                    sales={sales.data} 
+                    pagination={sales.meta}
+                    filters={filters}
+                />
             </div>
         </AppLayout>
     );

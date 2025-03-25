@@ -21,15 +21,15 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
-    Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
-    Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
-    Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
-    Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
+    Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
+    Route::put('/sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
+    Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
 
-    Route::get('stores', [StoreController::class, 'index'])->name('stores.index');
-    Route::post('stores', [StoreController::class, 'store'])->name('stores.store');
-    Route::put('stores/{store}', [StoreController::class, 'update'])->name('stores.update');
-    Route::delete('stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
+    Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
+    Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
+    Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
+    Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
 
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
     Route::get('/products/edit/{product}', [ProductController::class, 'edit'])->name('products.edit');

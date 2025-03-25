@@ -10,8 +10,8 @@ import { Pencil, Plus, Trash } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 interface SalesIndexProps {
-    sales: {
-        data: Sale[];
+    sales: Sale[];
+    pagination: {
         current_page: number;
         last_page: number;
         per_page: number;
@@ -27,7 +27,7 @@ interface SalesIndexProps {
     };
 }
 
-export default function SalesIndex({ sales, filters = {} }: SalesIndexProps) {
+export default function SalesIndex({ sales, pagination, filters = {} }: SalesIndexProps) {
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -124,6 +124,8 @@ export default function SalesIndex({ sales, filters = {} }: SalesIndexProps) {
         },
     ];
 
+    console.log(pagination);
+    
     return (
         <div className="space-y-6">
             <Card>
@@ -137,9 +139,9 @@ export default function SalesIndex({ sales, filters = {} }: SalesIndexProps) {
                 <CardContent>
                     <DataTable
                         columns={columns}
-                        data={sales.data}
-                        pagination={sales}
-                        searchKey="name"
+                        data={sales}
+                        pagination={pagination}
+                        searchKey="sale_code"
                         searchValue={searchTerm}
                         onSearchChange={handleSearch}
                     />
