@@ -103,10 +103,13 @@ export interface Product {
     product_brand_name: string;
     product_category_id: number;
     product_category_name: string;
+    quantity: number;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;
 }
+
+
 
 export interface StockMovement {
     id: number;

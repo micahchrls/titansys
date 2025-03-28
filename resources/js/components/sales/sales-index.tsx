@@ -4,10 +4,11 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Sale } from '@/types/index';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { Pencil, Plus, Trash } from 'lucide-react';
+import { FileText, Pencil, Plus, Trash } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { toast, Toaster } from 'sonner';
 
 interface SalesIndexProps {
     sales: Sale[];
@@ -34,6 +35,7 @@ export default function SalesIndex({ sales, pagination, filters = {} }: SalesInd
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+
 
     const handleSearch = useCallback((value: string) => {
         setSearchTerm(value);
@@ -103,29 +105,23 @@ export default function SalesIndex({ sales, pagination, filters = {} }: SalesInd
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-primary hover:bg-primary/10 hover:text-primary"
-                            onClick={() => handleEdit(sale)}
+                            className="text-blue-500 hover:bg-blue-500/10 hover:text-blue-500"
+                            asChild
                         >
-                            <Pencil className="mr-1 h-4 w-4" />
-                            Edit
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => handleDelete(sale)}
-                        >
-                            <Trash className="mr-1 h-4 w-4" />
-                            Delete
+                            <Link href={`/sales/${sale.id}`}>
+                                <FileText className="mr-1 h-4 w-4" />
+                                View Order
+                            </Link>
                         </Button>
                     </div>
                 );
             },
         },
     ];
-    
+
     return (
         <div className="space-y-6">
+            <Toaster />
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-xl font-bold">Sales</CardTitle>

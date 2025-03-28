@@ -22,7 +22,11 @@ export function ProductFilter({
   categoryFilter, 
   onCategoryChange, 
   categories 
-}: ProductFilterProps) {
+}: ProductFilterProps) {  
+  const handleCategoryChange = (value: string) => {
+    onCategoryChange(value);
+  };
+  
   return (
     <div className="flex flex-col sm:flex-row gap-2 mt-2">
       <div className="relative flex-1">
@@ -35,8 +39,8 @@ export function ProductFilter({
         />
       </div>
       <Select
-        value={categoryFilter}
-        onValueChange={onCategoryChange}
+        value={categoryFilter || 'All'}
+        onValueChange={handleCategoryChange}
       >
         <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Category" />

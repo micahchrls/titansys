@@ -1,59 +1,133 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ImageIcon, ShoppingCart } from "lucide-react";
-import { Product } from "./types";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Product } from '@/types/index';
+import { Check, ImageIcon, ShoppingCart, Tag } from 'lucide-react';
+import { CartItem } from './types';
 
 interface ProductCardProps {
-  product: Product;
-  onAddToCart: (product: Product) => void;
+    product: Product & {
+        category_name?: string;
+        brand_name?: string;
+        image?: { file_path: string } | null;
+    };
+    onAddToCart: (product: Product) => void;
+    cartItems: CartItem[];
 }
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
-  return (
-    <div className="h-auto">
-      <Card className="overflow-hidden border shadow-sm h-full transition-all hover:shadow-md">
-        <div className="relative bg-muted h-44">
-          {product.image ? (
-            <img 
-              src={product.image} 
-              alt={product.name}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                // Fallback to placeholder if image fails to load
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.querySelector('div')!.style.display = 'flex';
-              }}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-muted">
-              <ImageIcon className="h-12 w-12 text-muted-foreground opacity-50" />
-            </div>
-          )}
-          <Badge variant={product.stock > 10 ? "success" : "danger"} className="absolute top-2 right-2 text-xs">
-            {product.stock} in stock
-          </Badge>
+export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProps) {
+    // Get stock quantity
+    const stockQuantity = product.quantity || 0;
+
+    // Check if product is in cart
+    const productInCart = cartItems.find((item) => item.id === product.id);
+    const quantityInCart = productInCart ? productInCart.quantity : 0;
+
+    // Get image URL
+    const imageUrl =
+        product.image && typeof product.image === 'object' && product.image !== null && 'file_path' in product.image ? product.image.file_path : null;
+
+    // Safely get category and brand names
+    const categoryName = product.category_name || 'Uncategorized';
+    const brandName = product.brand_name || '';
+
+    // Handle the add to cart click
+    const handleAddToCart = () => {
+        try {
+            // Call the parent component's onAddToCart function
+            onAddToCart(product);
+        } catch (error) {
+            console.error('Error adding product to cart:', error);
+        }
+    };
+
+    // Determine stock badge variant
+    const stockBadgeVariant = stockQuantity > 10 ? 'success' : stockQuantity > 0 ? 'warning' : 'destructive';
+
+    return (
+        <div className="h-auto">
+            <Card className="h-full overflow-hidden border shadow-sm transition-all hover:shadow-md">
+                {/* Product Image */}
+                <div className="bg-muted relative h-44">
+                    {imageUrl ? (
+                        <img
+                            src={imageUrl}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                                // Fallback to placeholder if image fails to load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.querySelector('div')!.style.display = 'flex';
+                            }}
+                        />
+                    ) : (
+                        <div className="bg-muted flex h-full w-full items-center justify-center">
+                            <ImageIcon className="text-muted-foreground h-12 w-12 opacity-50" />
+                        </div>
+                    )}
+                    <Badge variant={stockBadgeVariant} className="absolute top-2 right-2 text-xs font-medium">
+                        {stockQuantity > 0 ? `${stockQuantity - quantityInCart} in stock` : 'Out of stock'}
+                    </Badge>
+
+                    {/* {quantityInCart > 0 && (
+                        <Badge variant="default" className="absolute top-2 left-2 text-xs font-medium">
+                            {quantityInCart} in cart
+                        </Badge>
+                    )} */}
+                </div>
+
+                {/* Product Details */}
+                <CardContent className="flex h-[calc(100%-11rem)] flex-col p-4">
+                    {/* Product Name */}
+                    <h3 className="text-foreground mb-1 truncate font-medium">{product.name}</h3>
+
+                    {/* Category Badge */}
+                    <Badge variant="secondary" className="mb-2 w-fit text-xs">
+                        {categoryName}
+                    </Badge>
+
+                    {/* Product Metadata */}
+                    <div className="text-muted-foreground mb-auto flex flex-col gap-1 text-xs">
+                        <div className="flex items-center">
+                            <Tag className="mr-1 h-3 w-3" />
+                            <span>SKU: {product.sku || 'N/A'}</span>
+                        </div>
+                        {brandName && <span className="font-medium">{brandName}</span>}
+                        {product.size && <span>Size: {product.size}</span>}
+                    </div>
+
+                    {/* Price and Add to Cart Button */}
+                    <div className="mt-3">
+                        <div className="mb-2 flex items-baseline">
+                            <span className="text-lg font-bold">₱{Number(product.price).toFixed(2)}</span>
+                        </div>
+                        <Button
+                            className="hover:bg-primary/90 w-full"
+                            size="sm"
+                            variant={quantityInCart > 0 ? 'outline' : 'default'}
+                            onClick={handleAddToCart}
+                            disabled={stockQuantity === 0}
+                        >
+                            {stockQuantity === 0 ? (
+                                <>
+                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                    Out of Stock
+                                </>
+                            ) : quantityInCart > 0 ? (
+                                <>
+                                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                                    {quantityInCart} in Cart • Add More
+                                </>
+                            ) : (
+                                <>
+                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                    Add to Cart
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
-        <CardContent className="p-4">
-          <h3 className="font-medium text-foreground mb-1">{product.name}</h3>
-          <Badge variant="secondary" className="mb-2 text-xs">
-            {product.category}
-          </Badge>
-          <div className="mt-2 mb-3">
-            <span className="font-bold text-lg">₱{product.price.toFixed(2)}</span>
-          </div>
-          <Button 
-            className="w-full hover:bg-white hover:text-black hover:cursor-pointer" 
-            size="sm"
-            variant="outline"
-            onClick={() => onAddToCart(product)}
-            disabled={product.stock === 0}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    );
 }

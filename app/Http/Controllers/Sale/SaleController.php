@@ -16,6 +16,9 @@ use App\Models\Stock\StockMovement;
 use App\Models\Stock\StockLog;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use App\Models\Product\Product;
+use App\Http\Resources\SaleProductResource;
+use App\Models\Product\ProductCategory;
 
 class SaleController extends Controller
 {
@@ -71,88 +74,84 @@ class SaleController extends Controller
 
     public function create()
     {
-        return Inertia::render('sales/create');
-    }
-    
+        try {
+            // Get products with available inventory
+            $products = Product::with(['productCategory', 'productBrand', 'productImage', 'inventory'])
+                ->whereHas('inventory', function($query) {
+                    $query->where('quantity', '>', 0);
+                })
+                ->get();
 
-    /**
-     * Store a newly created resource in storage.
-     */
+            // Transform products using SaleProductResource
+            $products = SaleProductResource::collection($products);
+            
+            return Inertia::render('sales/create', [
+                'products' => $products,
+                'categories' => ProductCategory::orderBy('name', 'asc')->get()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error loading sale create page: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to load sale creation page.');
+        }
+    }
+
     public function store(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'store_id' => 'required|exists:stores,id',
-                'total_price' => 'required|numeric|min:0',
+            $validated = $request->validate([
                 'items' => 'required|array|min:1',
-                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.store_id' => 'required|exists:stores,id',
+                'items.*.item_id' => 'required|exists:products,id',
                 'items.*.quantity' => 'required|integer|min:1',
-                'items.*.unit_price' => 'required|numeric|min:0',
+                'total_price' => 'required|numeric|min:0',
             ]);
-
-            if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
-            }
 
             // Begin transaction
             DB::beginTransaction();
             
-            // Check inventory availability for all items before proceeding
-            foreach ($request->items as $item) {
-                $inventory = Inventory::where('product_id', $item['product_id'])
-                    ->where('store_id', $request->store_id)
-                    ->first();
-                
-                if (!$inventory) {
-                    DB::rollBack();
-                    return redirect()->back()->with('error', 'Product not found in inventory.')->withInput();
-                }
-                
-                if ($inventory->quantity < $item['quantity']) {
-                    $productName = $inventory->product->name;
-                    $availableQty = $inventory->quantity;
-                    DB::rollBack();
-                    return redirect()->back()->with('error', "Insufficient stock for product '{$productName}'. Available: {$availableQty}.")->withInput();
-                }
-            }
-            
-            // Create the sale
+            // Create the sale record
             $sale = Sale::create([
-                'store_id' => $request->store_id,
+                'store_id' => $validated['items'][0]['store_id'], // Using first item's store
                 'user_id' => Auth::id(),
-                'total_price' => $request->total_price,
-                'status' => true
+                'total_price' => $validated['total_price'],
+                'status' => 'completed',
             ]);
             
-            // Create sale items and update inventory
-            foreach ($request->items as $item) {
+            // Create sale items
+            foreach ($validated['items'] as $item) {
+                // Get product details
+                $product = Product::findOrFail($item['item_id']);
+                
                 // Create sale item
                 $saleItem = new SaleItem([
-                    'product_id' => $item['product_id'],
+                    'product_id' => $item['item_id'],
                     'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price']
+                    'unit_price' => $product->price ?? 0
                 ]);
+                
                 $sale->items()->save($saleItem);
                 
-                // Update inventory (decrease quantity)
-                $inventory = Inventory::where('product_id', $item['product_id'])
-                    ->where('store_id', $request->store_id)
+                // Update inventory
+                $inventory = Inventory::where('product_id', $item['item_id'])
+                    ->where('store_id', $item['store_id'])
                     ->first();
                 
-                $inventory->quantity -= $item['quantity'];
-                $inventory->save();
-                
-                // Record stock movement
+                if ($inventory) {
+                    $inventory->quantity -= $item['quantity'];
+                    $inventory->save();
+                }
+
+                // Record Stock Movement
                 StockMovement::create([
                     'inventory_id' => $inventory->id,
                     'quantity' => $item['quantity'],
                     'movement_type' => 'out',
                 ]);
-                
+
                 // Log the stock action
                 StockLog::create([
                     'user_id' => Auth::id(),
-                    'store_id' => $request->store_id,
+                    'store_id' => $item['store_id'],
                     'inventory_id' => $inventory->id,
                     'action_type' => 'stock_out',
                     'description' => "Removed {$item['quantity']} units from inventory due to sale transaction"
@@ -164,32 +163,30 @@ class SaleController extends Controller
                 'sale_id' => $sale->id,
                 'user_id' => Auth::id(),
                 'action_type' => 'create',
-                'description' => 'Sale created with ' . count($request->items) . ' items'
+                'description' => 'Sale created with ' . count($validated['items']) . ' items'
             ]);
             
             DB::commit();
-
-            return redirect()->route('sales.index')->with('success', 'Sale created successfully.');
+            
+            return redirect()->route('sales.index')->with('success', 'Order completed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error storing sale: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-            return redirect()->back()->with('error', 'Failed to store sale.')->withInput();
+            Log::error('Error creating order: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to create order'], 500);
         }
     }
-
+    
     /**
      * Display the specified resource.
      */
     public function show(Sale $sale)
     {
         try {
-            $sale = Sale::with('items', 'log')->findOrFail($sale->id);
-            return \Inertia\Inertia::render('Sales/Show', [
-                'sale' => $sale
-            ]);
+            return $sale;
+            // $sale = Sale::with('items', 'log')->findOrFail($sale->id);
+            // return Inertia::render('sales.show', [
+            //     'sale' => $sale
+            // ]);
         } catch (\Exception $e) {
             Log::error('Error showing sale: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to show sale.');
