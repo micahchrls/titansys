@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CheckCircle, ShoppingCart as ShoppingCartIcon } from "lucide-react";
+import { CheckCircle, ShoppingCart as ShoppingCartIcon, Loader2 } from "lucide-react";
 import EmptyCart from "@/components/sales/empty-cart";
 
 import { CartItem as CartItemType } from "./types";
@@ -31,7 +31,8 @@ export function ShoppingCart({ cartItems, onAddToCart, onRemoveFromCart }: Shopp
   // Calculate total
   const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCompleteOrder = () => {
     if (cartItems.length === 0) {
@@ -39,6 +40,8 @@ export function ShoppingCart({ cartItems, onAddToCart, onRemoveFromCart }: Shopp
       return;
     }
 
+    setIsSubmitting(true);
+    
     router.post(route('sales.store'), {
       items: cartItems.map(item => ({
         store_id: item.store_id,
@@ -50,12 +53,14 @@ export function ShoppingCart({ cartItems, onAddToCart, onRemoveFromCart }: Shopp
       onSuccess: () => {
         toast.success("Order completed successfully!");
         setIsDialogOpen(false);
+        setIsSubmitting(false);
       },
-      onError: () => {
+      onError: (errors) => {
+        console.error(errors);
         toast.error("There was an error processing your order");
+        setIsSubmitting(false);
       }
     });
-    
   };
 
   return (
@@ -129,12 +134,16 @@ export function ShoppingCart({ cartItems, onAddToCart, onRemoveFromCart }: Shopp
                   </div>
                   
                   <DialogFooter className="flex-col sm:flex-row gap-2">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="sm:mt-0">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="sm:mt-0" disabled={isSubmitting}>
                       Cancel
                     </Button>
-                    <Button onClick={handleCompleteOrder} className="gap-2 cursor-pointer">
-                      <CheckCircle className="h-4 w-4" />
-                      Confirm Order
+                    <Button onClick={handleCompleteOrder} className="gap-2 cursor-pointer" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                      {isSubmitting ? "Processing..." : "Confirm Order"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

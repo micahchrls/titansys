@@ -71,7 +71,9 @@ class SaleController extends Controller
             return redirect()->back()->with('error', 'Failed to fetch sales.');
         }
     }
-
+    /**
+     * Show the form for creating a new sale.
+     */
     public function create()
     {
         try {
@@ -91,7 +93,7 @@ class SaleController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error loading sale create page: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to load sale creation page.');
+            return redirect()->route('sales.index')->with('error', 'Failed to load sale creation page.');
         }
     }
 
@@ -182,11 +184,10 @@ class SaleController extends Controller
     public function show(Sale $sale)
     {
         try {
-            return $sale;
-            // $sale = Sale::with('items', 'log')->findOrFail($sale->id);
-            // return Inertia::render('sales.show', [
-            //     'sale' => $sale
-            // ]);
+            $sale = Sale::with('items', 'log')->findOrFail($sale->id);
+            return Inertia::render('sales.show', [
+                'sale' => $sale
+            ]);
         } catch (\Exception $e) {
             Log::error('Error showing sale: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to show sale.');
