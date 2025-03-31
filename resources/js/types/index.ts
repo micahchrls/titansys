@@ -80,18 +80,6 @@ export interface Category {
     [key: string]: unknown;
 }
 
-export interface User {
-    id: number;
-    first_name: string;
-    middle_name: string;
-    last_name: string;
-    username: string;
-    email: string;
-    role: string;
-    created_at: string;
-    updated_at: string;
-}
-
 export interface Product {
     id: number;
     sku: string;
@@ -190,6 +178,7 @@ export interface Sale {
     status: string;
     created_at: string;
     updated_at: string;
+    items?: SaleItem[];
     [key: string]: unknown;
 }
 
@@ -199,6 +188,23 @@ export interface SaleItem {
     product_id: number;
     quantity: number;
     unit_price: number;
+    product: {
+        id: number;
+        name: string;
+        sku: string;
+        product_brand_id: number;
+        product_category_id: number;
+        product_brand_name: string;
+        product_category_name: string;
+    };
+    [key: string]: unknown;
+}
+
+export interface SaleLog {
+    id: number;
+    sale_id: number;
+    action_type: string;
+    description: string;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

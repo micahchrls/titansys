@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\SaleItemResource;
 
 class SaleResource extends JsonResource
 {
@@ -21,6 +22,7 @@ class SaleResource extends JsonResource
             'store_name' => $this->store->name,
             'user_id' => $this->user_id,
             'user_name' => $this->user->first_name . ' ' . $this->user->last_name,
+            'items' => SaleItemResource::collection($this->items),
             'total_price' => "₱ " .$this->total_price,
             'status' => $this->status,
             'created_at' => $this->created_at,

@@ -12,10 +12,20 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, onAddToCart, cartItems }: ProductGridProps) {
+  // Filter out products with zero or negative stock quantity
+  const availableProducts = products.filter(product => {
+    const stockQuantity = product.quantity || 0;
+    const productInCart = cartItems.find((item) => item.id === product.id);
+    const quantityInCart = productInCart ? productInCart.quantity : 0;
+    
+    // Only show products that have stock available (considering cart quantities)
+    return (stockQuantity - quantityInCart) > 0;
+  });
+
   return (
     <ScrollArea className="h-[calc(100vh-22rem)]">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 p-1">
-        {products.map((product) => (
+        {availableProducts.map((product) => (
           <ProductCard 
             key={product.id} 
             product={product}
@@ -24,7 +34,7 @@ export function ProductGrid({ products, onAddToCart, cartItems }: ProductGridPro
           />
         ))}
         
-        {products.length === 0 && ( 
+        {availableProducts.length === 0 && ( 
           <div className="col-span-full text-center text-muted-foreground py-8 border rounded-lg border-dashed mt-4 min-h-[300px] flex items-center justify-center">
             <div>
               <Search className="h-10 w-10 text-muted-foreground mb-2 mx-auto" />

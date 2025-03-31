@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Product } from '@/types/index';
-import { Check, ImageIcon, ShoppingCart, Tag } from 'lucide-react';
+import { Check, ImageIcon, Plus, ShoppingCart, Tag } from 'lucide-react';
 import { CartItem } from './types';
 
 interface ProductCardProps {
@@ -102,7 +102,7 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
                             <span className="text-lg font-bold">₱{Number(product.price).toFixed(2)}</span>
                         </div>
                         <Button
-                            className="hover:bg-primary/90 w-full"
+                            className="hover:bg-primary/50 w-full hover:text-black cursor-pointer"
                             size="sm"
                             variant={quantityInCart > 0 ? 'outline' : 'default'}
                             onClick={handleAddToCart}
@@ -115,8 +115,9 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
                                 </>
                             ) : quantityInCart > 0 ? (
                                 <>
-                                    <Check className="mr-2 h-4 w-4 text-green-500" />
-                                    {quantityInCart} in Cart • Add More
+                                    <Check className="mr-2 h-4 w-4" />
+                                    <span className="flex-1">In Cart</span>
+                                    <Badge variant="secondary" className="ml-1">{quantityInCart}</Badge>
                                 </>
                             ) : (
                                 <>

@@ -28,15 +28,19 @@ class SaleController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Sale::query();
-    
+            $query = Sale::with([
+                'items.product.productBrand',
+                'items.product.productCategory',
+                'items.product.productImage',
+            ]);
+
             if ($request->has('search')) {
                 $search = $request->input('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('sale_code', 'like', "%{$search}%");
                 });
             }
-    
+
             $sales = $query->latest()->paginate(10);
 
             $sales = SaleResource::collection($sales)->response()->getData(true);
@@ -49,7 +53,7 @@ class SaleController extends Controller
 
             // Prepare stats data
             $statsData = [];
-            
+
             if (empty($only) || in_array('stats', $only)) {
                 $statsData = [
                     'total_revenue' => $this->getTotalRevenue(),
@@ -79,14 +83,14 @@ class SaleController extends Controller
         try {
             // Get products with available inventory
             $products = Product::with(['productCategory', 'productBrand', 'productImage', 'inventory'])
-                ->whereHas('inventory', function($query) {
+                ->whereHas('inventory', function ($query) {
                     $query->where('quantity', '>', 0);
                 })
                 ->get();
 
             // Transform products using SaleProductResource
             $products = SaleProductResource::collection($products);
-            
+
             return Inertia::render('sales/create', [
                 'products' => $products,
                 'categories' => ProductCategory::orderBy('name', 'asc')->get()
@@ -110,7 +114,7 @@ class SaleController extends Controller
 
             // Begin transaction
             DB::beginTransaction();
-            
+
             // Create the sale record
             $sale = Sale::create([
                 'store_id' => $validated['items'][0]['store_id'], // Using first item's store
@@ -118,26 +122,26 @@ class SaleController extends Controller
                 'total_price' => $validated['total_price'],
                 'status' => 'completed',
             ]);
-            
+
             // Create sale items
             foreach ($validated['items'] as $item) {
                 // Get product details
                 $product = Product::findOrFail($item['item_id']);
-                
+
                 // Create sale item
                 $saleItem = new SaleItem([
                     'product_id' => $item['item_id'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price ?? 0
                 ]);
-                
+
                 $sale->items()->save($saleItem);
-                
+
                 // Update inventory
                 $inventory = Inventory::where('product_id', $item['item_id'])
                     ->where('store_id', $item['store_id'])
                     ->first();
-                
+
                 if ($inventory) {
                     $inventory->quantity -= $item['quantity'];
                     $inventory->save();
@@ -159,7 +163,7 @@ class SaleController extends Controller
                     'description' => "Removed {$item['quantity']} units from inventory due to sale transaction"
                 ]);
             }
-            
+
             // Create sale log
             SaleLog::create([
                 'sale_id' => $sale->id,
@@ -167,9 +171,9 @@ class SaleController extends Controller
                 'action_type' => 'create',
                 'description' => 'Sale created with ' . count($validated['items']) . ' items'
             ]);
-            
+
             DB::commit();
-            
+
             return redirect()->route('sales.index')->with('success', 'Order completed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -177,20 +181,65 @@ class SaleController extends Controller
             return response()->json(['error' => 'Failed to create order'], 500);
         }
     }
-    
+
     /**
      * Display the specified resource.
      */
     public function show(Sale $sale)
     {
         try {
-            $sale = Sale::with('items', 'log')->findOrFail($sale->id);
-            return Inertia::render('sales.show', [
-                'sale' => $sale
+            $sale = Sale::with([
+                'items.product.productBrand',
+                'items.product.productCategory',
+                'items.product.productImage',
+                'user',
+                'store',
+                'logs'
+            ])->findOrFail($sale->id);
+
+            return Inertia::render('sales/show', [
+                'sale' => [
+                    'id' => $sale->id,
+                    'sale_code' => $sale->sale_code,
+                    'total_price' => $sale->total_price,
+                    'status' => $sale->status,
+                    'created_at' => $sale->created_at->format('Y-m-d H:i:s'),
+                    'user' => $sale->user ? [
+                        'id' => $sale->user->id,
+                        'name' => $sale->user->name
+                    ] : null,
+                    'store' => $sale->store ? [
+                        'id' => $sale->store->id,
+                        'name' => $sale->store->name
+                    ] : null,
+                    'items' => $sale->items->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'quantity' => $item->quantity,
+                            'unit_price' => $item->unit_price,
+                            'product' => [
+                                'id' => $item->product->id,
+                                'name' => $item->product->name,
+                                'sku' => $item->product->sku,
+                                'brand' => $item->product->productBrand ? $item->product->productBrand->name : null,
+                                'category' => $item->product->productCategory ? $item->product->productCategory->name : null,
+                                'image' => $item->product->productImage ? $item->product->productImage->url : null
+                            ]
+                        ];
+                    }),
+                    'logs' => $sale->logs->map(function ($log) {
+                        return [
+                            'id' => $log->id,
+                            'action_type' => $log->action_type,
+                            'description' => $log->description,
+                            'created_at' => $log->created_at->format('Y-m-d H:i:s')
+                        ];
+                    })
+                ]
             ]);
         } catch (\Exception $e) {
             Log::error('Error showing sale: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to show sale.');
+            return redirect()->route('sales.index')->with('error', 'Failed to show sale details.');
         }
     }
 
@@ -215,17 +264,17 @@ class SaleController extends Controller
 
             // Begin transaction
             DB::beginTransaction();
-            
+
             // Update the sale
             $sale->update([
                 'store_id' => $request->store_id,
                 'total_price' => $request->total_price,
                 'status' => true
             ]);
-            
+
             // Delete existing sale items and create new ones
             $sale->items()->delete();
-            
+
             // Create new sale items
             foreach ($request->items as $item) {
                 $saleItem = new SaleItem([
@@ -235,7 +284,7 @@ class SaleController extends Controller
                 ]);
                 $sale->items()->save($saleItem);
             }
-            
+
             // Create sale log
             SaleLog::create([
                 'sale_id' => $sale->id,
@@ -243,7 +292,7 @@ class SaleController extends Controller
                 'action_type' => 'update',
                 'description' => 'Sale updated with ' . count($request->items) . ' items'
             ]);
-            
+
             DB::commit();
 
             return redirect()->route('sales.index')->with('success', 'Sale updated successfully.');
@@ -283,16 +332,16 @@ class SaleController extends Controller
             $currentMonthRevenue = Sale::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->sum('total_price');
-                
+
             // Get previous month's revenue for comparison
             $lastMonthRevenue = Sale::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->sum('total_price');
-                
-            $change = $lastMonthRevenue > 0 
+
+            $change = $lastMonthRevenue > 0
                 ? round((($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
                 : 0;
-                
+
             return [
                 'value' => round($currentMonthRevenue, 2),
                 'change_percentage' => $change,
@@ -307,7 +356,7 @@ class SaleController extends Controller
             ];
         }
     }
-    
+
     /**
      * Get total number of orders/sales
      * 
@@ -320,16 +369,16 @@ class SaleController extends Controller
             $currentMonthOrders = Sale::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->count();
-                
+
             // Count previous month's orders
             $lastMonthOrders = Sale::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->count();
-                
-            $change = $lastMonthOrders > 0 
+
+            $change = $lastMonthOrders > 0
                 ? round((($currentMonthOrders - $lastMonthOrders) / $lastMonthOrders) * 100, 1)
                 : 0;
-                
+
             return [
                 'value' => $currentMonthOrders,
                 'change_percentage' => $change,
@@ -344,7 +393,7 @@ class SaleController extends Controller
             ];
         }
     }
-    
+
     /**
      * Calculate average order value
      * 
@@ -357,24 +406,24 @@ class SaleController extends Controller
             $currentMonthSales = Sale::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->get();
-                
+
             $currentMonthAverage = $currentMonthSales->count() > 0
                 ? $currentMonthSales->sum('total_price') / $currentMonthSales->count()
                 : 0;
-                
+
             // Calculate previous month's average order value
             $lastMonthSales = Sale::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->get();
-                
+
             $lastMonthAverage = $lastMonthSales->count() > 0
                 ? $lastMonthSales->sum('total_price') / $lastMonthSales->count()
                 : 0;
-                
-            $change = $lastMonthAverage > 0 
+
+            $change = $lastMonthAverage > 0
                 ? round((($currentMonthAverage - $lastMonthAverage) / $lastMonthAverage) * 100, 1)
                 : 0;
-                
+
             return [
                 'value' => round($currentMonthAverage, 2),
                 'change_percentage' => $change,
@@ -389,7 +438,7 @@ class SaleController extends Controller
             ];
         }
     }
-    
+
     /**
      * Get the sales trend data for current month.
      *
