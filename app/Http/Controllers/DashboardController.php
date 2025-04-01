@@ -6,14 +6,13 @@ use App\Models\Sale\Sale;
 use App\Models\Inventory;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
 
     public function index()
     {
-        return Inertia::render('Dashboard', [
+        return Inertia::render('dashboard', [
             'recentSales' => $this->getRecentSales(),
             'totalRevenue' => $this->getTotalRevenue(),
             'totalSales' => $this->getTotalSales(),
