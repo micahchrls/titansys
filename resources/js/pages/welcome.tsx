@@ -39,7 +39,7 @@ export default function Welcome() {
                     <div className="flex w-full flex-col justify-center gap-6 sm:flex-row">
                         {auth.user ? (
                             <Button asChild size="lg" className="w-full sm:w-auto px-8 py-4 text-lg font-semibold transition-all duration-300 ease-in-out transform hover:scale-105">
-                                <Link href={route('dashboard')}>Access Your Inventory</Link>
+                                <Link href={route('dashboard.index')}>Access Your Inventory</Link>
                             </Button>
                         ) : (
                             <>
