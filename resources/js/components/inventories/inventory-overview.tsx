@@ -127,6 +127,7 @@ export function InventoryOverview() {
               </CardTitle>
               <div className="h-8 w-8 rounded-full bg-muted/20 p-1.5">
                 <stat.icon className="h-full w-full text-primary" />
+                
               </div>
             </CardHeader>
             <CardContent>

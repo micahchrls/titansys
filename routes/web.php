@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,9 +18,14 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    // Route::get('dashboard', function () {
+    //     return Inertia::render('dashboard');
+    // })->name('dashboard');
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/dashboard/sales-chart-data', [DashboardController::class, 'getSalesChartDataEndpoint'])->name('dashboard.sales-chart-data');
+    Route::get('/dashboard/low-stock-items', [DashboardController::class, 'getLowStockItemsEndpoint'])->name('dashboard.low-stock-items');
+    Route::get('/dashboard/recent-sale-transactions', [DashboardController::class, 'getRecentSaleTransactionsEndpoint'])->name('dashboard.recent-sale-transactions');
 
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
     Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
