@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Product } from '@/types/index';
-import { Check, ImageIcon, Plus, ShoppingCart, Tag } from 'lucide-react';
+import { Check, ImageIcon, ShoppingCart, Tag } from 'lucide-react';
 import { CartItem } from './types';
 
 interface ProductCardProps {
@@ -68,12 +68,6 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
                     <Badge variant={stockBadgeVariant} className="absolute top-2 right-2 text-xs font-medium">
                         {stockQuantity > 0 ? `${stockQuantity - quantityInCart} in stock` : 'Out of stock'}
                     </Badge>
-
-                    {/* {quantityInCart > 0 && (
-                        <Badge variant="default" className="absolute top-2 left-2 text-xs font-medium">
-                            {quantityInCart} in cart
-                        </Badge>
-                    )} */}
                 </div>
 
                 {/* Product Details */}
@@ -102,7 +96,7 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
                             <span className="text-lg font-bold">₱{Number(product.price).toFixed(2)}</span>
                         </div>
                         <Button
-                            className="hover:bg-primary/50 w-full hover:text-black cursor-pointer"
+                            className="hover:bg-primary/50 w-full cursor-pointer hover:text-black"
                             size="sm"
                             variant={quantityInCart > 0 ? 'outline' : 'default'}
                             onClick={handleAddToCart}
@@ -117,7 +111,9 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
                                 <>
                                     <Check className="mr-2 h-4 w-4" />
                                     <span className="flex-1">In Cart</span>
-                                    <Badge variant="secondary" className="ml-1">{quantityInCart}</Badge>
+                                    <Badge variant="secondary" className="ml-1">
+                                        {quantityInCart}
+                                    </Badge>
                                 </>
                             ) : (
                                 <>

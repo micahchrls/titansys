@@ -152,16 +152,21 @@ class ProductSeeder extends Seeder
             $product->product_brand_id = $faker->randomElement($brandIds);
             $product->product_category_id = $faker->randomElement($categoryIds);
             $product->supplier_id = $faker->randomElement($supplierIds);
+            $product->selling_price = round($product->price * 1.1, 2); // Add selling price 10% higher than price
             $product->save();
         }
         
         // Add some additional random products
         for ($i = 0; $i < 15; $i++) {
+            $price = $faker->randomFloat(2, 10, 1000);
+            $selling_price = round($price * 1.1, 2); // Calculate selling price as 10% higher than price
+            
             Product::create([
                 'sku' => strtoupper($faker->bothify('??-######')),
                 'name' => $faker->words($faker->numberBetween(2, 5), true),
                 'description' => $faker->paragraph(2),
-                'price' => $faker->randomFloat(2, 10, 1000),
+                'price' => $price,
+                'selling_price' => $selling_price,
                 'size' => $faker->optional(0.7)->randomElement(['Small', 'Medium', 'Large', 'Standard', 'Universal']),
                 'product_brand_id' => $faker->randomElement($brandIds),
                 'product_category_id' => $faker->randomElement($categoryIds),

@@ -86,6 +86,7 @@ export interface Product {
     name: string;
     description: string;
     price: number;
+    selling_price: number;
     size: string;
     product_brand_id: number;
     product_brand_name: string;
@@ -127,6 +128,7 @@ export interface Inventory {
     product_name: string;
     product_description: string;
     product_price: number;
+    product_selling_price: number;
     product_size: string;
     product_category: string;
     product_brand: string;
