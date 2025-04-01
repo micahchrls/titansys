@@ -86,7 +86,15 @@ export default function Dashboard() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
+            
             <div className="flex h-full flex-1 flex-col gap-4 p-6">
+                <div className="flex items-center justify-between pb-2">
+                    <div>
+                        <h2 className="text-2xl font-semibold tracking-tight">Dashboard Overview</h2>
+                        <p className="text-muted-foreground mt-1 text-sm">Monitor your sales, inventory, and business performance at a glance.</p>
+                    </div>
+                </div>
+                
                 <OverviewCards />
 
                 <div className="grid gap-4">
