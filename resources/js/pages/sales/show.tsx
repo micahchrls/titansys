@@ -1,7 +1,7 @@
 import React from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import SalesShow from '@/components/sales/sales-show';
+
 import { Sale } from '@/types';
 
 interface SalesShowPageProps {
@@ -12,7 +12,7 @@ export default function Show({ sale }: SalesShowPageProps) {
   return (
     <>
       <Head title={`Order #${sale.sale_code}`} />
-      <SalesShow />
+      {/* <SalesShow /> */}
     </>
   );
 }
