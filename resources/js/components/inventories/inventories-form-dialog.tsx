@@ -19,6 +19,7 @@ const formSchema = z.object({
     product_name: z.string().min(1, 'Product name is required'),
     description: z.string().optional(),
     price: z.string().min(1, 'Price is required'),
+    selling_price: z.string().min(1, 'Selling price is required'),
     size: z.string().optional(),
     product_category_id: z.string().min(1, 'Category is required'),
     product_brand_id: z.string().min(1, 'Brand is required'),
@@ -63,6 +64,7 @@ export default function InventoriesFormDialog({
             product_name: '',
             description: '',
             price: '',
+            selling_price: '',
             size: '',
             product_category_id: '',
             product_brand_id: '',
@@ -191,8 +193,8 @@ export default function InventoriesFormDialog({
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                            <div className="md:col-span-1 space-y-4">
-                                <Label htmlFor="image">Product Image (Optional)</Label>
+                            <div className="space-y-2 md:col-span-1">
+                                <Label htmlFor="image" >Product Image (Optional)</Label>
                                 {!imagePreview ? (
                                     <div className="w-full rounded-lg border border-dashed border-neutral-200 bg-white p-2 dark:border-neutral-800 dark:bg-black">
                                         <FileUpload onChange={handleImageChange} />
@@ -209,15 +211,15 @@ export default function InventoriesFormDialog({
                                             variant="outline"
                                             size="sm"
                                             onClick={removeImage}
-                                            className="flex w-fit items-center gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive hover:cursor-pointer"
+                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive flex w-fit items-center gap-1 hover:cursor-pointer"
                                         >
                                             <Trash className="h-4 w-4" /> Remove Image
                                         </Button>
                                     </div>
                                 )}
                             </div>
-                            
-                            <div className="md:col-span-2 space-y-6">
+
+                            <div className="space-y-6 md:col-span-2">
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div className="space-y-4">
                                         <FormField
@@ -259,7 +261,9 @@ export default function InventoriesFormDialog({
                                                                     </SelectItem>
                                                                 ))
                                                             ) : (
-                                                                <div className="text-muted-foreground py-2 text-center text-sm">No categories found</div>
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">
+                                                                    No categories found
+                                                                </div>
                                                             )}
                                                         </SelectContent>
                                                     </Select>
@@ -284,12 +288,12 @@ export default function InventoriesFormDialog({
 
                                         <FormField
                                             control={form.control}
-                                            name="size"
+                                            name="quantity"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Size (Optional)</FormLabel>
+                                                    <FormLabel>Quantity</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Size/Dimensions" {...field} />
+                                                        <Input type="number" placeholder="0" min="0" {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -298,33 +302,13 @@ export default function InventoriesFormDialog({
 
                                         <FormField
                                             control={form.control}
-                                            name="store_id"
+                                            name="size"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Store Location</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadStores}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select a store" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {isLoadingStores ? (
-                                                                <div className="flex items-center justify-center py-2">
-                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                    <span>Loading stores...</span>
-                                                                </div>
-                                                            ) : loadedStores.length > 0 ? (
-                                                                loadedStores.map((store) => (
-                                                                    <SelectItem key={store.id} value={String(store.id)}>
-                                                                        {store.name}
-                                                                    </SelectItem>
-                                                                ))
-                                                            ) : (
-                                                                <div className="text-muted-foreground py-2 text-center text-sm">No stores found</div>
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <FormLabel>Size (Optional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Size/Dimensions" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -391,7 +375,9 @@ export default function InventoriesFormDialog({
                                                                     </SelectItem>
                                                                 ))
                                                             ) : (
-                                                                <div className="text-muted-foreground py-2 text-center text-sm">No suppliers found</div>
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">
+                                                                    No suppliers found
+                                                                </div>
                                                             )}
                                                         </SelectContent>
                                                     </Select>
@@ -402,12 +388,12 @@ export default function InventoriesFormDialog({
 
                                         <FormField
                                             control={form.control}
-                                            name="quantity"
+                                            name="selling_price"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Quantity</FormLabel>
+                                                    <FormLabel>Selling Price</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" placeholder="0" min="0" {...field} />
+                                                        <Input type="number" placeholder="0.00" step="0.01" min="0" {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -423,6 +409,40 @@ export default function InventoriesFormDialog({
                                                     <FormControl>
                                                         <Input type="number" placeholder="0" min="0" {...field} />
                                                     </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="store_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Store Location</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={loadStores}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select a store" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {isLoadingStores ? (
+                                                                <div className="flex items-center justify-center py-2">
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    <span>Loading stores...</span>
+                                                                </div>
+                                                            ) : loadedStores.length > 0 ? (
+                                                                loadedStores.map((store) => (
+                                                                    <SelectItem key={store.id} value={String(store.id)}>
+                                                                        {store.name}
+                                                                    </SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <div className="text-muted-foreground py-2 text-center text-sm">No stores found</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
