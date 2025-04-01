@@ -30,40 +30,48 @@ class InventoryController extends Controller
     {
         try {
             $query = Inventory::query();
-            
+
             // Apply filters
             if ($request->has('search')) {
                 $search = $request->input('search');
                 $query->whereHas('product', function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('sku', 'like', "%{$search}%");
+                        ->orWhere('sku', 'like', "%{$search}%");
                 });
             }
+
+            $inventories = $query->with([
+                'product',
+                'product.images',
+                'product.productCategory',
+                'product.productBrand',
+                'product.supplier',
+                'store'
+            ])->orderBy('created_at', 'desc')->paginate(10);
             
-            $inventories = $query->with(['product', 'product.images', 'product.productCategory', 'product.productBrand', 'product.supplier', 'store'])->paginate(10);
             $inventoriesData = InventoryResource::collection($inventories)->response()->getData(true);
-            
+
             // Get related data for filters
             $categories = ProductCategory::all();
             $brands = ProductBrand::all();
             $suppliers = Supplier::all();
             $stores = Store::all();
-            
+
             // Check if this is a partial reload request
             $only = $request->header('X-Inertia-Partial-Data');
             $only = $only ? explode(',', $only) : [];
-            
+
             $data = [];
-            
+
             // Only include the requested data for partial reloads
             if (empty($only) || in_array('low_stock_alerts', $only)) {
                 $data['low_stock_alerts'] = $this->getLowStockAlerts();
             }
-            
+
             if (empty($only) || in_array('inventory_value_summary', $only)) {
                 $data['inventory_value_summary'] = $this->getInventoryValueSummary();
             }
-            
+
             // Add the rest of the data
             $data = array_merge($data, [
                 'inventories' => $inventoriesData,
@@ -73,7 +81,7 @@ class InventoryController extends Controller
                 'suppliers' => $suppliers,
                 'stores' => $stores,
             ]);
-            
+
             return Inertia::render('inventories', $data);
         } catch (\Exception $e) {
             Log::error('Error fetching inventory: ' . $e->getMessage());
@@ -138,6 +146,7 @@ class InventoryController extends Controller
                 'product_name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'price' => 'required|numeric|min:0',
+                'selling_price' => 'required|numeric|min:0',
                 'size' => 'nullable|string|max:100',
                 'product_category_id' => 'required|exists:product_categories,id',
                 'product_brand_id' => 'required|exists:product_brands,id',
@@ -216,6 +225,7 @@ class InventoryController extends Controller
             'sku' => $sku,
             'description' => $data['description'] ?? null,
             'price' => $data['price'],
+            'selling_price' => $data['selling_price'],
             'size' => $data['size'] ?? null,
             'product_category_id' => $data['product_category_id'],
             'product_brand_id' => $data['product_brand_id'],
@@ -570,7 +580,7 @@ class InventoryController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             // Record the deletion in stock logs
             $inventory->stockLogs()->create([
                 'user_id' => request()->user()->id,
@@ -586,13 +596,13 @@ class InventoryController extends Controller
                 'quantity' => $inventory->quantity,
                 'movement_type' => 'out',
             ]);
-            
+
             // Get product reference before deleting inventory
             $product = $inventory->product;
-            
+
             // Delete the inventory record
             $inventory->delete();
-            
+
             // Delete the product and its related data
             if ($product) {
                 // Delete product images if any
@@ -602,10 +612,10 @@ class InventoryController extends Controller
                         $image->delete();
                     }
                 }
-                
+
                 $product->delete();
             }
-            
+
             DB::commit();
             return redirect()->route('inventories.index')->with('success', 'Inventory and product deleted successfully.');
         } catch (\Exception $e) {
@@ -723,7 +733,7 @@ class InventoryController extends Controller
         // Count items by severity
         $criticalCount = $lowStockItems->where('quantity', '<=', DB::raw('reorder_level / 2'))->count();
         $warningCount = $lowStockItems->count() - $criticalCount;
-        
+
         // Get items that were low stock 14 days ago but still low stock now
         $twoWeeksAgo = now()->subDays(14);
         $persistentLowStock = StockLog::where('action_type', 'low_stock_alert')
@@ -731,14 +741,14 @@ class InventoryController extends Controller
             ->pluck('inventory_id')
             ->intersect($lowStockItems->pluck('id'))
             ->count();
-        
+
         // Get previous week's low stock count for trend calculation
         $lastWeekCount = Inventory::whereRaw('quantity <= reorder_level')
             ->where('updated_at', '<=', now()->subDays(7))
             ->count();
-        
+
         $change = $lowStockItems->count() - $lastWeekCount;
-        
+
         return [
             'count' => $lowStockItems->count(),
             'critical_count' => $criticalCount,
@@ -755,16 +765,16 @@ class InventoryController extends Controller
         $categoriesCount = ProductCategory::count();
         $lastWeekCategoriesCount = ProductCategory::where('created_at', '<=', now()->subDays(7))->count();
         $categoriesChange = $categoriesCount - $lastWeekCategoriesCount;
-        $categoriesChangePercentage = $lastWeekCategoriesCount > 0 
-            ? round(($categoriesChange / $lastWeekCategoriesCount) * 100, 1) 
+        $categoriesChangePercentage = $lastWeekCategoriesCount > 0
+            ? round(($categoriesChange / $lastWeekCategoriesCount) * 100, 1)
             : 0;
 
         // Count total products
         $productsCount = Product::count();
         $lastWeekProductsCount = Product::where('created_at', '<=', now()->subDays(7))->count();
         $productsChange = $productsCount - $lastWeekProductsCount;
-        $productsChangePercentage = $lastWeekProductsCount > 0 
-            ? round(($productsChange / $lastWeekProductsCount) * 100, 1) 
+        $productsChangePercentage = $lastWeekProductsCount > 0
+            ? round(($productsChange / $lastWeekProductsCount) * 100, 1)
             : 0;
 
         // Get top selling products (last 30 days)
@@ -823,19 +833,19 @@ class InventoryController extends Controller
 
         // Get slowest moving parts (inventory with oldest last stock-out date or no stock-out)
         $slowestMoving = Inventory::with(['product', 'store', 'stockMovements' => function ($query) {
-                $query->where('movement_type', 'out')
-                    ->orderBy('created_at', 'desc');
-            }])
+            $query->where('movement_type', 'out')
+                ->orderBy('created_at', 'desc');
+        }])
             ->whereRaw('quantity > reorder_level') // Only consider items not in low stock
             ->orderBy('updated_at', 'asc')
             ->take(5)
             ->get()
             ->map(function ($inventory) {
                 $lastMovement = $inventory->stockMovements->first();
-                $daysInInventory = $lastMovement 
-                    ? now()->diffInDays($lastMovement->created_at) 
+                $daysInInventory = $lastMovement
+                    ? now()->diffInDays($lastMovement->created_at)
                     : now()->diffInDays($inventory->created_at);
-                
+
                 return [
                     'id' => $inventory->id,
                     'product_name' => $inventory->product->name,
@@ -873,5 +883,4 @@ class InventoryController extends Controller
                 ];
             });
     }
-
 }
