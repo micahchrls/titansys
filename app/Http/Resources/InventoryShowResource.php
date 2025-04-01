@@ -21,6 +21,7 @@ class InventoryShowResource extends JsonResource
             'product_name' => $this->product->name,
             'product_description' => $this->product->description,
             'product_price' => $this->product->price,
+            'product_selling_price' => $this->product->selling_price,
             'product_size' => $this->product->size,
             'product_category_id' => $this->product->productCategory->id,
             'product_category' => $this->product->productCategory->name,

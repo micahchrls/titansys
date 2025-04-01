@@ -23,6 +23,7 @@ interface InventoryDisplayItem {
     product_sku: string;
     product_description: string;
     product_price: number;
+    product_selling_price: number;
     product_size: string;
     product_category: string;
     product_brand: string;

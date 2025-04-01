@@ -40,8 +40,8 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
 
     // Fix: Handle store as an array if needed
     const storeInfo: Store = Array.isArray(data.store) ? data.store[0] || {} : data.store || {};
-    console.log("DATA: ", data);
-    console.log("Store Info:", storeInfo)
+    console.log('DATA: ', data);
+    console.log('Store Info:', storeInfo);
 
     // Fix the image URL path to correctly point to the Laravel storage
     const productImageFile = productImage.length ? `${window.location.origin}/storage/${productImage[0].file_path}` : null;
@@ -146,7 +146,7 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
                     <TabsTrigger value="movements" className="flex items-center gap-1">
                         <BarChart3 className="h-4 w-4" />
                         Stock Movements
-                    </TabsTrigger>                    
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-4">
@@ -254,6 +254,14 @@ export function InventoryDetailTabs({ data }: InventoryDetailTabsProps) {
                                                 typeof data.product_price === 'number'
                                                     ? data.product_price.toLocaleString('fil-PH', { minimumFractionDigits: 2 })
                                                     : data.product_price
+                                            }`}
+                                        />
+                                        <InfoItem
+                                            label="Selling Price"
+                                            value={`₱ ${
+                                                typeof data.product_selling_price === 'number'
+                                                    ? data.product_selling_price.toLocaleString('fil-PH', { minimumFractionDigits: 2 })
+                                                    : data.product_selling_price
                                             }`}
                                         />
                                         {data.product_size && <InfoItem label="Size" value={data.product_size} />}
