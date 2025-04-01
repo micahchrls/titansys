@@ -22,7 +22,7 @@ Route::middleware(['auth'])->group(function () {
     //     return Inertia::render('dashboard');
     // })->name('dashboard');
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/sales-chart-data', [DashboardController::class, 'getSalesChartDataEndpoint'])->name('dashboard.sales-chart-data');
     Route::get('/dashboard/low-stock-items', [DashboardController::class, 'getLowStockItemsEndpoint'])->name('dashboard.low-stock-items');
     Route::get('/dashboard/recent-sale-transactions', [DashboardController::class, 'getRecentSaleTransactionsEndpoint'])->name('dashboard.recent-sale-transactions');
