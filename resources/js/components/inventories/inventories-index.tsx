@@ -2,7 +2,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { Inventory } from '@/types';
 import { router } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
 import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
 import InventoryDelete from "@/components/inventories/inventory-delete";
-import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { InventoryFilters } from './inventory-filters';
-import React from 'react';
 import { toast } from "sonner";
 
 interface InventoriesIndexProps {
@@ -46,21 +44,21 @@ interface InventoriesIndexProps {
 
 export default function InventoriesIndex({ inventories, filters = {}, categories, brands, suppliers, stores }: InventoriesIndexProps) {
     // Initialize with values from URL or defaults
-    const [searchTerm, setSearchTerm] = React.useState(filters?.search || '');
-    const [brandFilter, setBrandFilter] = React.useState(filters?.brand || 'all');
-    const [categoryFilter, setCategoryFilter] = React.useState(filters?.category || 'all');
-    const [statusFilter, setStatusFilter] = React.useState(filters?.status || 'all');
+    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
+    const [brandFilter, setBrandFilter] = useState(filters?.brand || 'all');
+    const [categoryFilter, setCategoryFilter] = useState(filters?.category || 'all');
+    const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
     
     // Reference to track if this is the initial mount
-    const initialMount = React.useRef(true);
+    const initialMount = useRef(true);
     
     // Local state for UI interaction, separate from URL state
-    const [isUpdatingFilters, setIsUpdatingFilters] = React.useState(false);
-    const [formDialogOpen, setFormDialogOpen] = React.useState(false);
-    const [editDialogOpen, setEditDialogOpen] = React.useState(false);
-    const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-    const [selectedInventoryId, setSelectedInventoryId] = React.useState<number | null>(null);
-    const [isViewLoading, setIsViewLoading] = React.useState<number | null>(null);
+    const [isUpdatingFilters, setIsUpdatingFilters] = useState(false);
+    const [formDialogOpen, setFormDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [selectedInventoryId, setSelectedInventoryId] = useState<number | null>(null);
+    const [isViewLoading, setIsViewLoading] = useState<number | null>(null);
 
     // Combined debounced search for all filters
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -69,23 +67,23 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
     const debouncedStatusFilter = useDebounce(statusFilter, 500);
 
     // Handlers for filter changes - these update local state only
-    const handleSearch = React.useCallback((value: string) => {
+    const handleSearch = useCallback((value: string) => {
         setSearchTerm(value);
     }, []);
 
-    const handleBrandChange = React.useCallback((value: string) => {
+    const handleBrandChange = useCallback((value: string) => {
         setBrandFilter(value);
     }, []);
 
-    const handleCategoryChange = React.useCallback((value: string) => {
+    const handleCategoryChange = useCallback((value: string) => {
         setCategoryFilter(value);
     }, []);
 
-    const handleStatusChange = React.useCallback((value: string) => {
+    const handleStatusChange = useCallback((value: string) => {
         setStatusFilter(value);
     }, []);
 
-    const handleResetFilters = React.useCallback(() => {
+    const handleResetFilters = useCallback(() => {
         setSearchTerm('');
         setBrandFilter('all');
         setCategoryFilter('all');
@@ -108,7 +106,7 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
     };
 
     // This effect syncs filters with the URL - but only when debounced values change
-    React.useEffect(() => {
+    useEffect(() => {
         // Skip on initial mount since we're initializing from the URL
         if (initialMount.current) {
             initialMount.current = false;
