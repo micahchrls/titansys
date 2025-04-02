@@ -29,35 +29,80 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Inventory::query();
+            // Start measuring query execution time
+            $startTime = microtime(true);
 
-            // Apply filters
-            if ($request->has('search')) {
-                $search = $request->input('search');
-                $query->whereHas('product', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%");
+            // Extract all filter parameters at once to avoid multiple calls
+            $search = $request->input('search');
+            $brandId = $request->input('brand');
+            $categoryId = $request->input('category'); 
+            $status = $request->input('status');
+
+            // Build base query with optimized join instead of multiple whereHas
+            $query = Inventory::query()
+                ->select('inventories.*')
+                ->join('products', 'inventories.product_id', '=', 'products.id');
+
+            // Apply search filter - optimize by using indexed columns
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('products.name', 'like', "%{$search}%")
+                      ->orWhere('products.sku', 'like', "%{$search}%");
                 });
             }
 
-            $inventories = $query->with([
-                'product',
-                'product.images',
-                'product.productCategory',
-                'product.productBrand',
-                'product.supplier',
-                'store'
-            ])->orderBy('created_at', 'desc')->paginate(10);
+            // Apply brand filter with optimized join approach
+            if ($brandId && $brandId !== 'all') {
+                $query->where('products.product_brand_id', $brandId);
+            }
+
+            // Apply category filter with optimized join approach
+            if ($categoryId && $categoryId !== 'all') {
+                $query->where('products.product_category_id', $categoryId);
+            }
+
+            // Apply status filter with optimized conditions
+            if ($status && $status !== 'all') {
+                switch ($status) {
+                    case 'in-stock':
+                        $query->whereRaw('inventories.quantity > inventories.reorder_level');
+                        break;
+                    case 'low-stock':
+                        $query->whereRaw('inventories.quantity > 0 AND inventories.quantity <= inventories.reorder_level');
+                        break;
+                    case 'out-of-stock':
+                        $query->where('inventories.quantity', '<=', 0);
+                        break;
+                }
+            }
+
+            // Remove duplicates that might arise from joins
+            $query->distinct();
+
+            // Get the count before pagination for accurate totals
+            $totalCount = $query->count();
+
+            // Only load necessary relationships with explicit field selection
+            $query = $query->with([
+                'product' => function ($q) {
+                    $q->select('id', 'name', 'sku', 'product_category_id', 'product_brand_id', 'supplier_id');
+                },
+                'product.productCategory:id,name',
+                'product.productBrand:id,name',
+                'product.supplier:id,name',
+                'store:id,name'
+            ]);
+
+            // Apply sorting on indexed column for better performance
+            $query->orderBy('inventories.created_at', 'desc');
+
+            // Get paginated results - the join approach may require groupBy to avoid duplicates
+            $inventories = $query->paginate(10);
             
+            // Check if we can use a simpler resource that doesn't transform as much data
             $inventoriesData = InventoryResource::collection($inventories)->response()->getData(true);
 
-            // Get related data for filters
-            $categories = ProductCategory::all();
-            $brands = ProductBrand::all();
-            $suppliers = Supplier::all();
-            $stores = Store::all();
-
-            // Check if this is a partial reload request
+            // Only get filter data if this is a full page load (not a partial reload)
             $only = $request->header('X-Inertia-Partial-Data');
             $only = $only ? explode(',', $only) : [];
 
@@ -72,19 +117,43 @@ class InventoryController extends Controller
                 $data['inventory_value_summary'] = $this->getInventoryValueSummary();
             }
 
-            // Add the rest of the data
+            // Fetch filter data efficiently with minimal columns
+            if (empty($only) || in_array('categories', $only)) {
+                $data['categories'] = ProductCategory::select('id', 'name')->orderBy('name')->get();
+            }
+
+            if (empty($only) || in_array('brands', $only)) {
+                $data['brands'] = ProductBrand::select('id', 'name')->orderBy('name')->get();
+            }
+
+            if (empty($only) || in_array('suppliers', $only)) {
+                $data['suppliers'] = Supplier::select('id', 'name')->orderBy('name')->get();
+            }
+
+            if (empty($only) || in_array('stores', $only)) {
+                $data['stores'] = Store::select('id', 'name')->orderBy('name')->get();
+            }
+
+            // Track query execution time
+            $executionTime = microtime(true) - $startTime;
+            Log::info("Inventory listing query executed in {$executionTime} seconds");
+
+            // Add the inventory data and filter parameters to the response
             $data = array_merge($data, [
                 'inventories' => $inventoriesData,
-                'filters' => $request->only(['search']),
-                'categories' => $categories,
-                'brands' => $brands,
-                'suppliers' => $suppliers,
-                'stores' => $stores,
+                'filters' => $request->only(['search', 'brand', 'category', 'status']),
             ]);
+
+            // Add optional filter data only if needed
+            if (!isset($data['categories'])) $data['categories'] ??= ProductCategory::select('id', 'name')->orderBy('name')->get();
+            if (!isset($data['brands'])) $data['brands'] ??= ProductBrand::select('id', 'name')->orderBy('name')->get();
+            if (!isset($data['suppliers'])) $data['suppliers'] ??= Supplier::select('id', 'name')->orderBy('name')->get();
+            if (!isset($data['stores'])) $data['stores'] ??= Store::select('id', 'name')->orderBy('name')->get();
 
             return Inertia::render('inventories', $data);
         } catch (\Exception $e) {
             Log::error('Error fetching inventory: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             return redirect()->back()->with('error', 'Failed to load inventory data.');
         }
     }
