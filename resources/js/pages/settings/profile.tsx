@@ -29,8 +29,10 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         last_name: auth.user.last_name,
         username: auth.user.username,
         email: auth.user.email,
-        role: auth.user.role || 'no_role',
+        role: auth.user.role || 'staff',
     });
+
+    console.log(data)
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -126,9 +128,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                     <SelectValue placeholder="Select a role" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="no_role">No role assigned yet</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="user">User</SelectItem>
+                                    <SelectItem value="staff">Staff</SelectItem>
                                 </SelectContent>
                             </Select>
                             <InputError className="mt-2" message={errors.role} />
