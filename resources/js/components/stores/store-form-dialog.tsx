@@ -85,7 +85,7 @@ export function StoreFormDialog({ open, onOpenChange, store = null, onClose }: S
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] top-[5%] translate-y-0">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <DialogHeader>

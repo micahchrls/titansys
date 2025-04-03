@@ -55,7 +55,7 @@ export function CategoriesFormDialog({ open, onOpenChange }: CategoriesFormDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] top-[5%] translate-y-0">
                 <DialogHeader>
                     <DialogTitle>Create Category</DialogTitle>
                     <DialogDescription>
