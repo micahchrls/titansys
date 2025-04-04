@@ -24,9 +24,8 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
     const quantityInCart = productInCart ? productInCart.quantity : 0;
 
     // Get image URL
-    const imageUrl =
-        product.image && typeof product.image === 'object' && product.image !== null && 'file_path' in product.image ? product.image.file_path : null;
-
+    const imageUrl = product.image && product.image.file_path ? 
+        `${window.location.origin}/storage/${product.image.file_path}` : null;
     // Safely get category and brand names
     const categoryName = product.category_name || 'Uncategorized';
     const brandName = product.brand_name || '';
@@ -53,7 +52,7 @@ export function ProductCard({ product, onAddToCart, cartItems }: ProductCardProp
                         <img
                             src={imageUrl}
                             alt={product.name}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-contain"
                             onError={(e) => {
                                 // Fallback to placeholder if image fails to load
                                 e.currentTarget.style.display = 'none';

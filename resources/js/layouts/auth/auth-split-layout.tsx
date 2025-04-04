@@ -22,8 +22,7 @@ export default function AuthSplitLayout({ children, title, description }: AuthLa
     // Determine if dark mode is active based on the app's native appearance system
     const isDarkMode = appearance === 'dark' || 
         (appearance === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
-    console.log('Current appearance:', appearance, 'Dark mode:', isDarkMode)
+
 
     return (
         <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
