@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Brand, Category, Store, Supplier, ProductImage, StockMovement } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Trash } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -69,6 +69,9 @@ interface InventoryEditDialogProps {
 }
 
 export function InventoryEditDialog({ open, onOpenChange, inventory, brands, categories, suppliers, stores, onInventoryUpdated }: InventoryEditDialogProps) {
+    // Store original values to compare changes
+    const originalValuesRef = useRef<Record<string, any>>({});
+    
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -88,7 +91,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
 
     useEffect(() => {
         if (inventory) {
-            form.reset({
+            const initialValues = {
                 product_name: inventory.product_name,
                 product_sku: inventory.product_sku,
                 product_description: inventory.product_description || '',
@@ -101,7 +104,12 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                 quantity: inventory.quantity,
                 reorder_level: inventory.reorder_level,
                 remove_image: false,
-            });
+            };
+            
+            // Store the original values for later comparison
+            originalValuesRef.current = { ...initialValues };
+            
+            form.reset(initialValues);
         }
     }, [inventory, form]);
 
@@ -188,6 +196,48 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                 }
 
                                 const values = form.getValues();
+                                
+                                // Function to check if form values have actually changed
+                                const hasFormChanged = () => {
+                                    const originalValues = originalValuesRef.current;
+                                    const currentValues = form.getValues();
+                                    
+                                    // Fields to check for changes (excluding image and remove_image)
+                                    const fieldsToCheck = [
+                                        'product_name',
+                                        'product_sku',
+                                        'product_description',
+                                        'product_price', 
+                                        'product_size',
+                                        'product_category_id',
+                                        'product_brand_id',
+                                        'supplier_id',
+                                        'store_id',
+                                        'quantity',
+                                        'reorder_level'
+                                    ];
+                                    
+                                    // Check each field for changes
+                                    for (const field of fieldsToCheck) {
+                                        const originalValue = originalValues[field];
+                                        const currentValue = currentValues[field];
+                                        
+                                        // Handle numbers vs strings consistently
+                                        const normalizedOriginal = typeof originalValue === 'number' ? originalValue : String(originalValue || '');
+                                        const normalizedCurrent = typeof currentValue === 'number' ? currentValue : String(currentValue || '');
+                                        
+                                        if (normalizedOriginal !== normalizedCurrent) {
+                                            return true; // Found a change
+                                        }
+                                    }
+                                    
+                                    // Check for image changes
+                                    if (values.image instanceof File || values.remove_image) {
+                                        return true;
+                                    }
+                                    
+                                    return false; // No changes found
+                                };
 
                                 // Check if any required fields are missing or empty
                                 const requiredFields = [
@@ -216,6 +266,13 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                 }
 
                                 if (inventory) {
+                                    // Check if any values have actually changed
+                                    if (!hasFormChanged()) {
+                                        // No changes were made, just close the dialog without submitting
+                                        onOpenChange(false);
+                                        return;
+                                    }
+                                    
                                     const url = route('inventories.update', inventory.id);
 
                                     // Close the dialog immediately to prevent multiple submissions
