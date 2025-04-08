@@ -230,10 +230,16 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                     // Add method override for Laravel to recognize it as PUT
                                     formData.append('_method', 'PUT');
 
-                                    // Add CSRF token
+                                    // Add CSRF token - make sure to get it correctly
                                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                                     if (csrfToken) {
                                         formData.append('_token', csrfToken);
+                                    } else {
+                                        // Log error and show toast if CSRF token is missing
+                                        console.error('CSRF token not found');
+                                        toast.error('CSRF token not found. Please refresh the page and try again.');
+                                        onOpenChange(true);
+                                        return;
                                     }
 
                                     // Add all form values to FormData
@@ -324,10 +330,14 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
 
                                     // Set X-Requested-With header for Laravel to recognize it as an AJAX request
                                     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                                    // Set X-CSRF-Token header
+                                    // Set X-CSRF-Token header - this is crucial for Laravel's CSRF protection
                                     if (csrfToken) {
                                         xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
                                     }
+                                    
+                                    // Also set the Content-Type header to let Laravel know it's a form submission
+                                    // Do NOT set this for FormData submissions as it will break file uploads
+                                    // xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                                     // Set X-Inertia header for Inertia.js
                                     xhr.setRequestHeader('X-Inertia', 'true');
 
