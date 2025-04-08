@@ -42,12 +42,12 @@ class InventoryController extends Controller
             $query = Inventory::query()
                 ->select('inventories.*')
                 ->join('products', 'inventories.product_id', '=', 'products.id');
-
             // Apply search filter - optimize by using indexed columns
             if ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('products.name', 'like', "%{$search}%")
-                      ->orWhere('products.sku', 'like', "%{$search}%");
+                    $q->whereRaw('LOWER(products.name) LIKE ?', ['%' . strtolower($search) . '%'])
+                      ->orWhereRaw('LOWER(products.sku) LIKE ?', ['%' . strtolower($search) . '%'])
+                      ->orWhereRaw('LOWER(products.description) LIKE ?', ['%' . strtolower($search) . '%']);
                 });
             }
 
@@ -217,6 +217,8 @@ class InventoryController extends Controller
                 'price' => 'required|numeric|min:0',
                 'selling_price' => 'required|numeric|min:0',
                 'size' => 'nullable|string|max:100',
+                'sku' => 'nullable|string|max:100|unique:products,sku',
+                'auto_generate_sku' => 'nullable',
                 'product_category_id' => 'required|exists:product_categories,id',
                 'product_brand_id' => 'required|exists:product_brands,id',
                 'supplier_id' => 'required|exists:suppliers,id',
@@ -236,9 +238,20 @@ class InventoryController extends Controller
                 $user = $request->user();
                 $storeId = $validated['store_id']; // Get store ID from request
 
-                // Generate SKU and create product
-                $sku = $this->generateSku($validated['product_name'], $validated['product_category_id']);
-                Log::info('Generated SKU', ['sku' => $sku]);
+                // Check if SKU is provided or should be auto-generated
+                $sku = null;
+                // Convert string 'false' to boolean false, and use true as default
+                $autoGenerateSku = filter_var($request->input('auto_generate_sku', true), FILTER_VALIDATE_BOOLEAN);
+                
+                if (!empty($request->sku) && !$autoGenerateSku) {
+                    // Use the provided SKU
+                    $sku = $request->sku;
+                    Log::info('Using provided SKU', ['sku' => $sku]);
+                } else {
+                    // Auto-generate SKU
+                    $sku = $this->generateSku($validated['product_name'], $validated['product_category_id']);
+                    Log::info('Generated SKU', ['sku' => $sku]);
+                }
 
                 $product = $this->createProduct($validated, $sku);
                 Log::info('Product created', ['product_id' => $product->id, 'product' => $product->toArray()]);

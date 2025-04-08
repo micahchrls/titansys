@@ -2,11 +2,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileUpload } from '@/components/ui/file-upload';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from '@inertiajs/react';
 import { Loader2, Trash } from 'lucide-react';
@@ -21,6 +22,8 @@ const formSchema = z.object({
     price: z.string().min(1, 'Price is required'),
     selling_price: z.string().min(1, 'Selling price is required'),
     size: z.string().optional(),
+    sku: z.string().optional(),
+    auto_generate_sku: z.boolean().default(true),
     product_category_id: z.string().min(1, 'Category is required'),
     product_brand_id: z.string().min(1, 'Brand is required'),
     supplier_id: z.string().min(1, 'Supplier is required'),
@@ -66,6 +69,8 @@ export default function InventoriesFormDialog({
             price: '',
             selling_price: '',
             size: '',
+            sku: '',
+            auto_generate_sku: true,
             product_category_id: '',
             product_brand_id: '',
             supplier_id: '',
@@ -151,6 +156,9 @@ export default function InventoriesFormDialog({
             if (value !== undefined && value !== null) {
                 if (key === 'image' && value instanceof File) {
                     formData.append(key, value);
+                } else if (key === 'auto_generate_sku') {
+                    // Ensure boolean is properly converted when sent to server
+                    formData.append(key, value ? '1' : '0');
                 } else {
                     formData.append(key, String(value));
                 }
@@ -313,6 +321,48 @@ export default function InventoriesFormDialog({
                                                 </FormItem>
                                             )}
                                         />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="auto_generate_sku"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel>Auto-generate SKU</FormLabel>
+                                                        <FormDescription className="text-xs">
+                                                            Toggle off to manually enter a SKU
+                                                        </FormDescription>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value}
+                                                            onCheckedChange={(checked) => {
+                                                                field.onChange(checked);
+                                                                if (checked) {
+                                                                    form.setValue('sku', '');
+                                                                }
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {!form.watch('auto_generate_sku') && (
+                                            <FormField
+                                                control={form.control}
+                                                name="sku"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Product SKU</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Enter product SKU" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
                                     </div>
 
                                     <div className="space-y-4">
