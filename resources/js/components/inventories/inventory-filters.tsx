@@ -112,7 +112,7 @@ export function InventoryFilters({
         <div className="relative flex-1 min-w-[250px] w-full lg:w-auto">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by product name or SKU..."
+            placeholder="Search by product NAME, SKU OR DESCRIPTION..."
             value={decodedSearchValue}
             onChange={(event) => handleSearchChange(event.target.value)}
             className="pl-9 pr-12 h-10 w-full"
