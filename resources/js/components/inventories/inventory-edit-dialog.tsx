@@ -337,6 +337,15 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                                 
                                                 if (response.inventory) {
                                                     updatedInventory = response.inventory;
+                                                    
+                                                    // If the backend response doesn't include supplier/store objects 
+                                                    // make sure to preserve the original ones
+                                                    if (!updatedInventory.supplier && inventory.supplier) {
+                                                        updatedInventory.supplier = inventory.supplier;
+                                                    }
+                                                    if (!updatedInventory.store && inventory.store) {
+                                                        updatedInventory.store = inventory.store;
+                                                    }
                                                 }
                                             } catch (e) {
                                                 console.error('Error parsing response:', e);
@@ -346,8 +355,16 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                                 id: toastId,
                                             });
                                             
-                                            // Call the callback with the updated inventory
+                                            // Make sure to preserve store and supplier information
                                             if (onInventoryUpdated && updatedInventory) {
+                                                // Ensure supplier and store objects are preserved
+                                                if (!updatedInventory.supplier && inventory.supplier) {
+                                                    updatedInventory.supplier = inventory.supplier;
+                                                }
+                                                if (!updatedInventory.store && inventory.store) {
+                                                    updatedInventory.store = inventory.store;
+                                                }
+                                                
                                                 onInventoryUpdated(updatedInventory);
                                             }
                                             
