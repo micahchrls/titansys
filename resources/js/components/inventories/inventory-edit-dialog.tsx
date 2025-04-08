@@ -46,7 +46,7 @@ const formSchema = z.object({
     product_sku: z.string().min(1, 'SKU is required'),
     product_description: z.string().optional(),
     product_price: z.coerce.number().positive('Price must be positive'),
-    product_size: z.string().optional(),
+    product_size: z.string().nullable().transform(val => val === null ? "" : val).optional(),
     product_category_id: z.coerce.number().positive('Category is required'),
     product_brand_id: z.coerce.number().positive('Brand is required'),
     supplier_id: z.coerce.number().positive('Supplier is required'),
@@ -76,7 +76,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
             product_sku: inventory?.product_sku || '',
             product_description: inventory?.product_description || '',
             product_price: inventory?.product_price || 0,
-            product_size: inventory?.product_size || '',
+            product_size: inventory?.product_size ?? '',
             product_category_id: inventory?.product_category_id || 0,
             product_brand_id: inventory?.product_brand_id || 0,
             supplier_id: inventory?.supplier_id || 0,
@@ -93,7 +93,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                 product_sku: inventory.product_sku,
                 product_description: inventory.product_description || '',
                 product_price: inventory.product_price,
-                product_size: inventory.product_size,
+                product_size: inventory.product_size ?? '',
                 product_category_id: inventory.product_category_id,
                 product_brand_id: inventory.product_brand_id,
                 supplier_id: inventory.supplier_id,
@@ -437,9 +437,11 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                         name="product_size"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Size</FormLabel>
+                                                <FormLabel className="flex items-center gap-1">
+                                                    Size <span className="text-xs text-muted-foreground">(Optional)</span>
+                                                </FormLabel>
                                                 <FormControl>
-                                                    <Input {...field} />
+                                                    <Input {...field} placeholder="Enter product size if applicable" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
