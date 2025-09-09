@@ -20,7 +20,7 @@ class SaleItemResource extends JsonResource
             'unit_price' => $this->unit_price,
             'product' => [
                 'id' => $this->product->id,
-                'name' => $this->product->name,
+                'name' => $this->product->part_number,
                 'sku' => $this->product->sku,
                 'product_brand_id' => $this->product->product_brand_id,
                 'product_category_id' => $this->product->product_category_id,

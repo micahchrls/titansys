@@ -8,7 +8,7 @@ interface InventoryShowProps {
         data: {
             id: number;
             product_id: number;
-            product_name: string;
+            product_part_number: string;
             product_sku: string;
             product_description: string;
             product_price: number;
@@ -33,14 +33,14 @@ export default function InventoryShow({ inventory }: InventoryShowProps) {
             href: '/inventories',
         },
         {
-            title: inventory.data.product_name,
+            title: inventory.data.product_part_number,
             href: `/inventories/${inventory.data.id}`,
         },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Inventory - ${inventory.data.product_name}`} />
+            <Head title={`Inventory - ${inventory.data.product_part_number}`} />
             <div className="flex h-full flex-1 flex-col p-6">
                 <InventoriesShow inventory={inventory} />
             </div>

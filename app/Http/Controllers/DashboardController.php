@@ -203,14 +203,14 @@ class DashboardController extends Controller
         try {
             // Calculate current total inventory value
             $currentValue = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
-                ->selectRaw('SUM(inventories.quantity * products.price) as total_value')
+                ->selectRaw('SUM(inventories.quantity * products.code) as total_value')
                 ->first()
                 ->total_value;
 
             // Calculate value from last month for comparison
             $lastMonthValue = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
                 ->where('inventories.updated_at', '<=', now()->subMonth())
-                ->selectRaw('SUM(inventories.quantity * products.price) as total_value')
+                ->selectRaw('SUM(inventories.quantity * products.code) as total_value')
                 ->first()
                 ->total_value ?? 0;
 

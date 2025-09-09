@@ -18,10 +18,10 @@ import { z } from 'zod';
 interface InventoryItem {
     id: number;
     product_id: number;
-    product_name: string;
+    part_number: string;
     product_sku: string;
     product_description: string;
-    product_price: number;
+    code: number;
     product_size: string;
     product_category: string;
     product_brand: string;
@@ -37,15 +37,16 @@ interface InventoryItem {
     supplier: Supplier[];
     store: Store;
     stock_movement?: StockMovement[];
+    vehicle: string;
     created_at?: string;
     updated_at?: string;
 }
 
 const formSchema = z.object({
-    product_name: z.string().min(1, 'Product name is required'),
+    part_number: z.string().min(1, 'Part number is required'),
     product_sku: z.string().min(1, 'SKU is required'),
     product_description: z.string().optional(),
-    product_price: z.coerce.number().positive('Price must be positive'),
+    code: z.coerce.number().positive('Code must be positive'),
     product_size: z.string().nullable().transform(val => val === null ? "" : val).optional(),
     product_category_id: z.coerce.number().positive('Category is required'),
     product_brand_id: z.coerce.number().positive('Brand is required'),
@@ -53,6 +54,7 @@ const formSchema = z.object({
     store_id: z.coerce.number().positive('Store is required'),
     quantity: z.coerce.number().min(0, 'Quantity cannot be negative').optional(),
     reorder_level: z.coerce.number().min(0, 'Reorder level cannot be negative'),
+    vehicle: z.string().optional(),
     image: z.instanceof(File).optional(),
     remove_image: z.boolean().optional(),
 });
@@ -75,10 +77,10 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            product_name: inventory?.product_name || '',
+            part_number: inventory?.part_number || '',
             product_sku: inventory?.product_sku || '',
             product_description: inventory?.product_description || '',
-            product_price: inventory?.product_price || 0,
+            code: inventory?.code || 0,
             product_size: inventory?.product_size ?? '',
             product_category_id: inventory?.product_category_id || 0,
             product_brand_id: inventory?.product_brand_id || 0,
@@ -86,16 +88,17 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
             store_id: inventory?.store_id || 0,
             quantity: inventory?.quantity || 0,
             reorder_level: inventory?.reorder_level || 0,
+            vehicle: inventory?.vehicle || '',
         },
     });
 
     useEffect(() => {
         if (inventory) {
             const initialValues = {
-                product_name: inventory.product_name,
+                part_number: inventory.part_number,
                 product_sku: inventory.product_sku,
                 product_description: inventory.product_description || '',
-                product_price: inventory.product_price,
+                code: inventory.code,
                 product_size: inventory.product_size ?? '',
                 product_category_id: inventory.product_category_id,
                 product_brand_id: inventory.product_brand_id,
@@ -103,6 +106,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                 store_id: inventory.store_id,
                 quantity: inventory.quantity,
                 reorder_level: inventory.reorder_level,
+                vehicle: inventory.vehicle,
                 remove_image: false,
             };
             
@@ -204,17 +208,18 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                     
                                     // Fields to check for changes (excluding image and remove_image)
                                     const fieldsToCheck = [
-                                        'product_name',
+                                        'part_number',
                                         'product_sku',
                                         'product_description',
-                                        'product_price', 
+                                        'code', 
                                         'product_size',
                                         'product_category_id',
                                         'product_brand_id',
                                         'supplier_id',
                                         'store_id',
                                         'quantity',
-                                        'reorder_level'
+                                        'reorder_level',
+                                        'vehicle'
                                     ];
                                     
                                     // Check each field for changes
@@ -241,9 +246,9 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
 
                                 // Check if any required fields are missing or empty
                                 const requiredFields = [
-                                    'product_name',
+                                    'part_number',
                                     'product_sku',
-                                    'product_price',
+                                    'code',
                                     'product_category_id',
                                     'product_brand_id',
                                     'supplier_id',
@@ -452,10 +457,10 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="product_name"
+                                        name="part_number"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Product Name</FormLabel>
+                                                <FormLabel>Part Number</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} />
                                                 </FormControl>
@@ -495,10 +500,10 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="product_price"
+                                        name="code"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Price</FormLabel>
+                                                <FormLabel>Code</FormLabel>
                                                 <FormControl>
                                                     <Input type="number" step="0.01" min="0" {...field} />
                                                 </FormControl>
@@ -674,6 +679,20 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                         )}
                                     />
                                 </div>
+
+                                <FormField
+                                    control={form.control}
+                                    name="vehicle"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Vehicle</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                         </div>
 

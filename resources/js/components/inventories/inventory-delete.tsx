@@ -48,7 +48,7 @@ export default function InventoryDelete({ open, onOpenChange, inventories, selec
                         <div className="space-y-2">
                             <div className="flex items-center justify-between border-b pb-2">
                                 <span className="text-muted-foreground text-sm">Product Name:</span>
-                                <span className="font-medium">{selectedInventory.product_name}</span>
+                                <span className="font-medium">{selectedInventory.product_part_number}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground text-sm">SKU:</span>

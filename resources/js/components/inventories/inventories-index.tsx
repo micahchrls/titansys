@@ -1,6 +1,6 @@
 import { useDebounce } from '@/hooks/use-debounce';
 import { Inventory } from '@/types';
-import { router } from '@inertiajs/react';
+import { router, Link, useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -43,52 +43,54 @@ interface InventoriesIndexProps {
 }
 
 export default function InventoriesIndex({ inventories, filters = {}, categories, brands, suppliers, stores }: InventoriesIndexProps) {
-    // Initialize with values from URL or defaults
-    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
-    const [brandFilter, setBrandFilter] = useState(filters?.brand || 'all');
-    const [categoryFilter, setCategoryFilter] = useState(filters?.category || 'all');
-    const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
+    // Use Inertia's useForm hook for better form state management
+    const { data: filterData, setData, get, processing } = useForm({
+        search: filters?.search || '',
+        brand: filters?.brand || 'all',
+        category: filters?.category || 'all',
+        status: filters?.status || 'all',
+    });
     
     // Reference to track if this is the initial mount
     const initialMount = useRef(true);
     
-    // Local state for UI interaction, separate from URL state
-    const [isUpdatingFilters, setIsUpdatingFilters] = useState(false);
+    // Local state for UI interaction
     const [formDialogOpen, setFormDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedInventoryId, setSelectedInventoryId] = useState<number | null>(null);
-    const [isViewLoading, setIsViewLoading] = useState<number | null>(null);
 
-    // Combined debounced search for all filters
-    const debouncedSearchTerm = useDebounce(searchTerm, 500);
-    const debouncedBrandFilter = useDebounce(brandFilter, 500);
-    const debouncedCategoryFilter = useDebounce(categoryFilter, 500);
-    const debouncedStatusFilter = useDebounce(statusFilter, 500);
+    // Debounced values for filters
+    const debouncedSearch = useDebounce(filterData.search, 500);
+    const debouncedBrand = useDebounce(filterData.brand, 500);
+    const debouncedCategory = useDebounce(filterData.category, 500);
+    const debouncedStatus = useDebounce(filterData.status, 500);
 
-    // Handlers for filter changes - these update local state only
+    // Handlers for filter changes using Inertia's setData
     const handleSearch = useCallback((value: string) => {
-        setSearchTerm(value);
-    }, []);
+        setData('search', value);
+    }, [setData]);
 
     const handleBrandChange = useCallback((value: string) => {
-        setBrandFilter(value);
-    }, []);
+        setData('brand', value);
+    }, [setData]);
 
     const handleCategoryChange = useCallback((value: string) => {
-        setCategoryFilter(value);
-    }, []);
+        setData('category', value);
+    }, [setData]);
 
     const handleStatusChange = useCallback((value: string) => {
-        setStatusFilter(value);
-    }, []);
+        setData('status', value);
+    }, [setData]);
 
     const handleResetFilters = useCallback(() => {
-        setSearchTerm('');
-        setBrandFilter('all');
-        setCategoryFilter('all');
-        setStatusFilter('all');
-    }, []);
+        setData({
+            search: '',
+            brand: 'all',
+            category: 'all',
+            status: 'all',
+        });
+    }, [setData]);
 
     const handleEdit = (inventory: Inventory) => {
         setSelectedInventoryId(inventory.id);
@@ -100,23 +102,16 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
         setDeleteDialogOpen(true);
     };
 
-    const handleView = (inventory: Inventory) => {
-        setIsViewLoading(inventory.id);
-        router.visit(route('inventories.show', inventory.id));
-    };
-
-    // This effect syncs filters with the URL - but only when debounced values change
+    // Effect to handle debounced filter updates using Inertia's get method
     useEffect(() => {
-        // Skip on initial mount since we're initializing from the URL
+        // Skip on initial mount
         if (initialMount.current) {
             initialMount.current = false;
             return;
         }
 
-        // Skip if we're already processing an update
-        if (isUpdatingFilters) {
-            return;
-        }
+        // Skip if processing
+        if (processing) return;
 
         // Skip if values match current URL params
         const currentSearch = filters?.search || '';
@@ -125,41 +120,22 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
         const currentStatus = filters?.status || 'all';
         
         if (
-            debouncedSearchTerm === currentSearch && 
-            debouncedBrandFilter === currentBrand && 
-            debouncedCategoryFilter === currentCategory && 
-            debouncedStatusFilter === currentStatus
+            debouncedSearch === currentSearch && 
+            debouncedBrand === currentBrand && 
+            debouncedCategory === currentCategory && 
+            debouncedStatus === currentStatus
         ) {
             return;
         }
 
-        // Flag that we're updating (prevents re-entry)
-        setIsUpdatingFilters(true);
-        
-        // Build URL parameters
-        const params = new URLSearchParams();
-        
-        if (debouncedSearchTerm) params.set('search', debouncedSearchTerm);
-        if (debouncedBrandFilter !== 'all') params.set('brand', debouncedBrandFilter);
-        if (debouncedCategoryFilter !== 'all') params.set('category', debouncedCategoryFilter);
-        if (debouncedStatusFilter !== 'all') params.set('status', debouncedStatusFilter);
-        
-        // Update URL and fetch data
-        const url = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-        
-        router.visit(url, {
+        // Use Inertia's get method with proper options
+        get(route('inventories.index'), {
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            onSuccess: () => {
-                // Reset updating flag once request completes
-                setIsUpdatingFilters(false);
-            },
-            onError: () => {
-                setIsUpdatingFilters(false);
-            }
+            only: ['inventories', 'filters'],
         });
-    }, [debouncedSearchTerm, debouncedBrandFilter, debouncedCategoryFilter, debouncedStatusFilter]);
+    }, [debouncedSearch, debouncedBrand, debouncedCategory, debouncedStatus, processing, get]);
 
     const columns: ColumnDef<Inventory>[] = [
         {
@@ -168,8 +144,18 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
             enableSorting: true,
         },
         {
-            accessorKey: 'product_name',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+            accessorKey: 'part_number',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Part Number" />,
+            enableSorting: true,
+        },
+        {
+            accessorKey: 'vehicle',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Vehicle" />,
+            enableSorting: true,
+        },
+        {
+            accessorKey: 'code',
+            header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
             enableSorting: true,
         },
         {
@@ -235,7 +221,6 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
             header: () => <div className="text-right">Actions</div>,
             cell: ({ row }) => {
                 const inventory = row.original;
-                const isLoading = isViewLoading === inventory.id;
                 
                 return (
                     <div className="flex justify-end gap-2">
@@ -252,21 +237,15 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                             <Copy className="h-4 w-4" />
                             <span className="sr-only">Copy SKU</span>
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(inventory)}
-                            disabled={isLoading}
-                            className="h-8 w-8"
+                        {/* Use Inertia Link instead of manual router.visit */}
+                        <Link
+                            href={route('inventories.show', inventory.id)}
+                            className="inline-flex items-center justify-center rounded-md h-8 w-8 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                             title="View details"
                         >
-                            {isLoading ? (
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-dotted border-current opacity-60"></span>
-                            ) : (
-                                <FileText className="h-4 w-4" />
-                            )}
+                            <FileText className="h-4 w-4" />
                             <span className="sr-only">View details</span>
-                        </Button>
+                        </Link>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -313,10 +292,10 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                 </CardHeader>
                 <CardContent className="space-y-5">
                     <InventoryFilters 
-                        searchValue={searchTerm}
-                        brandValue={brandFilter}
-                        categoryValue={categoryFilter}
-                        statusValue={statusFilter}
+                        searchValue={filterData.search}
+                        brandValue={filterData.brand}
+                        categoryValue={filterData.category}
+                        statusValue={filterData.status}
                         brands={brands}
                         categories={categories}
                         onSearchChange={handleSearch}

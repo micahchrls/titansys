@@ -125,25 +125,25 @@ export interface Inventory {
     id: number;
     product_id: number;
     product_sku: string;
-    product_name: string;
+    part_number: string;
+    vehicle: string;
     product_description: string;
-    product_price: number;
-    product_selling_price: number;
+    code: string;
     product_size: string;
     product_category: string;
     product_brand: string;
-    product_image: ProductImage[];
-    store: Store[];
-    supplier: Supplier[];
+    product_category_id: number;
+    product_brand_id: number;
+    supplier_id: number;
+    supplier_name: string;
+    store_id: number;
+    store_name: string;
+    product_image: ProductImage;
+    image_url: string | null;
     reorder_level: number;
     last_restocked: string;
     quantity: number;
-    stock_movement: StockMovement[];
-    created_at: string;
-    updated_at: string;
-    [key: string]: unknown;
 }
-
 
 export interface Store {
     id: number;

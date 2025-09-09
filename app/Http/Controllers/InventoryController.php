@@ -45,9 +45,10 @@ class InventoryController extends Controller
             // Apply search filter - optimize by using indexed columns
             if ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->whereRaw('LOWER(products.name) LIKE ?', ['%' . strtolower($search) . '%'])
+                    $q->whereRaw('LOWER(products.part_number) LIKE ?', ['%' . strtolower($search) . '%'])
                       ->orWhereRaw('LOWER(products.sku) LIKE ?', ['%' . strtolower($search) . '%'])
-                      ->orWhereRaw('LOWER(products.description) LIKE ?', ['%' . strtolower($search) . '%']);
+                      ->orWhereRaw('LOWER(products.description) LIKE ?', ['%' . strtolower($search) . '%'])
+                      ->orWhereRaw('LOWER(products.vehicle) LIKE ?', ['%' . strtolower($search) . '%']);
                 });
             }
 
@@ -85,7 +86,7 @@ class InventoryController extends Controller
             // Only load necessary relationships with explicit field selection
             $query = $query->with([
                 'product' => function ($q) {
-                    $q->select('id', 'name', 'sku', 'product_category_id', 'product_brand_id', 'supplier_id');
+                    $q->select('id', 'part_number', 'sku', 'vehicle', 'description', 'code', 'size', 'product_category_id', 'product_brand_id', 'supplier_id');
                 },
                 'product.productCategory:id,name',
                 'product.productBrand:id,name',
@@ -212,10 +213,10 @@ class InventoryController extends Controller
             }
 
             $validated = Validator::make($request->all(), [
-                'product_name' => 'required|string|max:255',
+                'part_number' => 'required|string|max:255',
+                'vehicle' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'price' => 'required|numeric|min:0',
-                'selling_price' => 'required|numeric|min:0',
+                'code' => 'required|numeric|min:0',
                 'size' => 'nullable|string|max:100',
                 'sku' => 'nullable|string|max:100|unique:products,sku',
                 'auto_generate_sku' => 'nullable',
@@ -249,7 +250,7 @@ class InventoryController extends Controller
                     Log::info('Using provided SKU', ['sku' => $sku]);
                 } else {
                     // Auto-generate SKU
-                    $sku = $this->generateSku($validated['product_name'], $validated['product_category_id']);
+                    $sku = $this->generateSku($validated['part_number'], $validated['product_category_id']);
                     Log::info('Generated SKU', ['sku' => $sku]);
                 }
 
@@ -303,11 +304,11 @@ class InventoryController extends Controller
     private function createProduct(array $data, string $sku): Product
     {
         return Product::create([
-            'name' => $data['product_name'],
+            'part_number' => $data['part_number'],
             'sku' => $sku,
+            'vehicle' => $data['vehicle'],
             'description' => $data['description'] ?? null,
-            'price' => $data['price'],
-            'selling_price' => $data['selling_price'],
+            'code' => $data['code'],
             'size' => $data['size'] ?? null,
             'product_category_id' => $data['product_category_id'],
             'product_brand_id' => $data['product_brand_id'],
@@ -356,7 +357,7 @@ class InventoryController extends Controller
             'store_id' => $storeId,
             'inventory_id' => $inventoryId,
             'action_type' => 'add',
-            'description' => "Added new product to inventory: {$product->name} (SKU: {$product->sku})",
+            'description' => "Added new product to inventory: {$product->part_number} (SKU: {$product->sku})",
         ]);
     }
 
@@ -431,11 +432,12 @@ class InventoryController extends Controller
 
             // Match the validation rules to the fields sent from the front-end
             $validator = Validator::make($request->all(), [
-                'product_name' => 'required|string|max:255',
-                'product_sku' => 'required|string|max:100',
-                'product_description' => 'nullable|string',
-                'product_price' => 'required|numeric|min:0',
-                'product_size' => 'nullable|string|max:100',
+                'part_number' => 'required|string|max:255',
+                'vehicle' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'code' => 'required|numeric|min:0',
+                'size' => 'nullable|string|max:100',
+                'sku' => 'required|string|max:100',
                 'product_category_id' => 'required|integer|exists:product_categories,id',
                 'product_brand_id' => 'required|integer|exists:product_brands,id',
                 'supplier_id' => 'required|integer|exists:suppliers,id',
@@ -476,11 +478,11 @@ class InventoryController extends Controller
 
             try {
                 // Extract all data from request manually to ensure it's available
-                $productName = $request->input('product_name');
-                $productSku = $request->input('product_sku');
-                $productDescription = $request->input('product_description');
-                $productPrice = $request->input('product_price');
-                $productSize = $request->input('product_size');
+                $partNumber = $request->input('part_number');
+                $vehicle = $request->input('vehicle');
+                $description = $request->input('description');
+                $code = $request->input('code');
+                $size = $request->input('size');
                 $productCategoryId = $request->input('product_category_id');
                 $productBrandId = $request->input('product_brand_id');
                 $supplierId = $request->input('supplier_id');
@@ -488,23 +490,23 @@ class InventoryController extends Controller
                 $reorderLevel = $request->input('reorder_level');
 
                 Log::info('Extracted data from request:', [
-                    'product_name' => $productName,
-                    'product_sku' => $productSku,
-                    'product_price' => $productPrice,
+                    'part_number' => $partNumber,
+                    'vehicle' => $vehicle,
+                    'code' => $code,
                     'product_category_id' => $productCategoryId,
                     'product_brand_id' => $productBrandId,
                     'supplier_id' => $supplierId,
                     'store_id' => $storeId,
-                    'reorder_level' => $reorderLevel
+                    'reorder_level' => $reorderLevel,
                 ]);
 
                 // Update product details
                 $inventory->product->update([
-                    'name' => $productName,
-                    'sku' => $productSku,
-                    'description' => $productDescription,
-                    'price' => $productPrice,
-                    'size' => $productSize,
+                    'part_number' => $partNumber,
+                    'vehicle' => $vehicle,
+                    'description' => $description,
+                    'code' => $code,
+                    'size' => $size,
                     'product_category_id' => $productCategoryId,
                     'product_brand_id' => $productBrandId,
                     'supplier_id' => $supplierId,
@@ -588,7 +590,7 @@ class InventoryController extends Controller
                     'inventory_id' => $inventory->id,
                     'store_id' => $inventory->store_id,
                     'action_type' => 'update',
-                    'description' => "Updated inventory for product: {$inventory->product->name} (SKU: {$inventory->product->sku})",
+                    'description' => "Updated inventory for product: {$inventory->product->part_number} (SKU: {$inventory->product->sku})",
                 ]);
 
                 DB::commit();
@@ -669,7 +671,7 @@ class InventoryController extends Controller
                 'inventory_id' => $inventory->id,
                 'store_id' => $inventory->store_id,
                 'action_type' => 'remove',
-                'description' => "Removed product from inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})",
+                'description' => "Removed product from inventory: {$inventory->product->part_number} (SKU: {$inventory->product->sku})",
             ]);
 
             // Record stock movement
@@ -744,7 +746,7 @@ class InventoryController extends Controller
                 'user_id' => request()->user()->id,
                 'store_id' => $inventory->store_id,
                 'action_type' => 'stock_in',
-                'description' => "Added {$validated['quantity']} units to inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})"
+                'description' => "Added {$validated['quantity']} units to inventory: {$inventory->product->part_number} (SKU: {$inventory->product->sku})"
             ]);
 
             DB::commit();
@@ -792,7 +794,7 @@ class InventoryController extends Controller
                 'user_id' => request()->user()->id,
                 'store_id' => $inventory->store_id,
                 'action_type' => 'stock_out',
-                'description' => "Removed {$validated['quantity']} units from inventory: {$inventory->product->name} (SKU: {$inventory->product->sku})"
+                'description' => "Removed {$validated['quantity']} units from inventory: {$inventory->product->part_number} (SKU: {$inventory->product->sku})"
             ]);
 
             DB::commit();
@@ -904,7 +906,7 @@ class InventoryController extends Controller
                 $turnoverRate = $movement->total_out / max(1, $movement->inventory->quantity);
                 return [
                     'id' => $movement->inventory_id,
-                    'product_name' => $movement->inventory->product->name,
+                    'product_name' => $movement->inventory->product->part_number,
                     'product_sku' => $movement->inventory->product->sku,
                     'quantity_sold' => $movement->total_out,
                     'current_stock' => $movement->inventory->quantity,
@@ -930,7 +932,7 @@ class InventoryController extends Controller
 
                 return [
                     'id' => $inventory->id,
-                    'product_name' => $inventory->product->name,
+                    'product_name' => $inventory->product->part_number,
                     'product_sku' => $inventory->product->sku,
                     'current_stock' => $inventory->quantity,
                     'days_in_inventory' => $daysInInventory,
@@ -955,7 +957,7 @@ class InventoryController extends Controller
                 return [
                     'id' => $movement->id,
                     'inventory_id' => $movement->inventory_id,
-                    'product_name' => $movement->inventory->product->name,
+                    'product_name' => $movement->inventory->product->part_number,
                     'product_sku' => $movement->inventory->product->sku,
                     'quantity' => $movement->quantity,
                     'movement_type' => $movement->movement_type,

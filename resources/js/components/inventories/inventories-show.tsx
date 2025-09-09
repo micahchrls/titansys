@@ -19,26 +19,25 @@ import { StockOutDialog } from '@/components/inventories/stock-out-dialog';
 interface InventoryDisplayItem {
     id: number;
     product_id: number;
-    product_name: string;
+    part_number: string;
+    vehicle: string;
     product_sku: string;
     product_description: string;
-    product_price: number;
-    product_selling_price: number;
+    code: number;
     product_size: string;
     product_category: string;
     product_brand: string;
     product_category_id: number;
     product_brand_id: number;
     supplier_id: number;
+    supplier_name: string;
     store_id: number;
+    store_name: string;
     quantity: number;
     reorder_level: number;
     last_restocked: string;
     image_url: string | null;
-    product_image: ProductImage[];
-    supplier: Supplier[];
-    store: Store;
-    stock_movement: StockMovement[];
+    product_image: ProductImage;
     created_at: string;
     updated_at: string;
 }
@@ -132,15 +131,15 @@ export default function InventoriesShow({ inventory }: InventoryShowProps) {
 
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{inventoryData.product_name}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{inventoryData.product_sku}</h1>
                     <div className="flex items-center gap-2">
-                        <p className="text-muted-foreground">SKU: {inventoryData.product_sku}</p>
+                        <p className="text-muted-foreground">Part Number: {inventoryData.part_number}</p>
                         <Button 
                             variant="ghost" 
                             size="sm"   
                             onClick={() => {
-                                navigator.clipboard.writeText(inventoryData.product_sku);
-                                toast.success("SKU copied to clipboard");
+                                navigator.clipboard.writeText(inventoryData.part_number);
+                                toast.success("Part Number copied to clipboard");
                             }}
                             className="hover:cursor-pointer"
                         >

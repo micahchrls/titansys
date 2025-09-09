@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { router } from "@inertiajs/react";
-import { useState } from "react";
+import { useForm } from "@inertiajs/react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ArrowDown, Loader2 } from "lucide-react";
 
@@ -37,13 +37,26 @@ export function StockInDialog({
     inventoryId,
     onStockUpdated
 }: StockInDialogProps) {
-    const [quantity, setQuantity] = useState<number | ''>('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Use Inertia's useForm hook for better form management
+    const { data, setData, post, processing, reset, errors } = useForm({
+        quantity: '',
+    });
+
+    // Reset form when dialog opens/closes
+    useEffect(() => {
+        if (!open) {
+            reset();
+            setError(null);
+            setShowConfirmation(false);
+        }
+    }, [open, reset]);
 
     const handleInitiateStockIn = () => {
-        if (quantity === '' || Number(quantity) <= 0) {
+        const quantityValue = Number(data.quantity);
+        if (!data.quantity || quantityValue <= 0) {
             setError('Please enter a valid quantity greater than 0');
             return;
         }
@@ -53,42 +66,32 @@ export function StockInDialog({
     };
 
     const handleStockIn = () => {
-        setLoading(true);
-        setError(null);
-
-        router.post(route('inventories.stock-in', inventoryId), {
-            quantity: Number(quantity),
-        }, {
-            onSuccess: () => {
+        post(route('inventories.stock-in', inventoryId), {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: (page) => {
                 toast.success('Stock added successfully');
-                setQuantity('');
                 onOpenChange(false);
-                setLoading(false);
                 setShowConfirmation(false);
                 
-                // If a callback was provided, fetch the updated inventory
-                if (onStockUpdated) {
-                    router.get(route('inventories.show', inventoryId), {}, {
-                        onSuccess: (page) => {
-                            onStockUpdated(page.props.inventory);
-                        },
-                        preserveState: true,
-                    });
-                } else {
-                    // Just reload the page to reflect changes
-                    router.reload();
+                // If a callback was provided, call it with updated data
+                if (onStockUpdated && page.props.inventory) {
+                    onStockUpdated(page.props.inventory);
                 }
             },
-            onError: (errors) => {
-                setLoading(false);
+            onError: (formErrors) => {
                 setShowConfirmation(false);
-                setError(errors.quantity || 'Failed to add stock. Please try again.');
+                if (formErrors.quantity) {
+                    setError(formErrors.quantity);
+                } else {
+                    setError('Failed to add stock. Please try again.');
+                }
             }
         });
     };
 
     const handleCancel = () => {
-        setQuantity('');
+        reset();
         setError(null);
         onOpenChange(false);
     };
@@ -119,27 +122,27 @@ export function StockInDialog({
                                 id="quantity"
                                 type="number"
                                 min="1"
-                                value={quantity}
-                                onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : '')}
+                                value={data.quantity}
+                                onChange={(e) => setData('quantity', e.target.value)}
                                 placeholder="Enter quantity to add"
                             />
-                            {error && (
+                            {(error || errors.quantity) && (
                                 <div className="text-destructive text-sm">
-                                    {error}
+                                    {error || errors.quantity}
                                 </div>
                             )}
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={handleCancel} disabled={loading} className="gap-2 hover:cursor-pointer">
+                        <Button variant="outline" onClick={handleCancel} disabled={processing} className="gap-2 hover:cursor-pointer">
                             Cancel
                         </Button>
                         <Button 
                             onClick={handleInitiateStockIn} 
-                            disabled={loading}
+                            disabled={processing}
                             className="gap-2 hover:cursor-pointer"
                         >
-                            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {processing && <Loader2 className="h-4 w-4 animate-spin" />}
                             Proceed
                         </Button>
                     </DialogFooter>
@@ -151,20 +154,20 @@ export function StockInDialog({
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirm Stock Addition</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to add <span className="font-bold">{quantity}</span> units to inventory?
+                            Are you sure you want to add <span className="font-bold">{data.quantity}</span> units to inventory?
                             This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={handleCancelConfirmation} disabled={loading} className="hover:cursor-pointer">
+                        <AlertDialogCancel onClick={handleCancelConfirmation} disabled={processing} className="hover:cursor-pointer">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={handleStockIn} 
-                            disabled={loading}
+                            disabled={processing}
                             className="gap-2 hover:cursor-pointer"
                         >
-                            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {processing && <Loader2 className="h-4 w-4 animate-spin" />}
                             Confirm
                         </AlertDialogAction>
                     </AlertDialogFooter>

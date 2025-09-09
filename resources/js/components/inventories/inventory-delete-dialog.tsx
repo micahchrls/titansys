@@ -9,7 +9,7 @@ import { Brand, Category, Store, Supplier, ProductImage, StockMovement } from '@
 interface InventoryItem {
     id: number;
     product_id: number;
-    product_name: string;
+    product_part_number: string;
     product_sku: string;
     product_description: string;
     product_price: number;
@@ -92,7 +92,7 @@ export function InventoryDeleteDialog({
                     <div className="border rounded-md p-3 bg-muted/50">
                         <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">Product Name:</span>
-                            <span className="text-sm font-medium">{inventory.product_name}</span>
+                            <span className="text-sm font-medium">{inventory.product_part_number}</span>
                         </div>
                         <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">SKU:</span>

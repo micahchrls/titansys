@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('sku')->unique();
-            $table->string('name');
+            $table->string('part_number');
+            $table->string('vehicle')->nullable();
             $table->text('description')->nullable();
-            $table->decimal('price', 10, 2);
-            $table->decimal('selling_price', 10, 2);
+            $table->string('code', 50);
             $table->string('size')->nullable();
             $table->unsignedBigInteger('product_brand_id');
             $table->unsignedBigInteger('product_category_id');

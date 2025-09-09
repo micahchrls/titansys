@@ -32,9 +32,9 @@ interface SupplierFormDialogProps {
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
     contact_name: z.string().min(1, "Contact name is required"),
-    phone: z.string().min(1, "Phone number is required"),
-    email: z.string().email("Please enter a valid email address"),
-    address: z.string().min(1, "Address is required"),
+    phone: z.string().optional(),
+    email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
+    address: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;

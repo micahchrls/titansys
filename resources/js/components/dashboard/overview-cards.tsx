@@ -19,7 +19,7 @@ interface DashboardProps {
         title: string;
         value: string;
         items: {
-            product_name: string;
+            product_part_number: string;
             quantity: number;
         }[];
         description: string;
