@@ -218,7 +218,7 @@ export default function InventoriesFormDialog({
                                         <Label htmlFor="code">Code</Label>
                                         <Input 
                                             id="code"
-                                            type="number"
+                                            type="text"
                                             placeholder="Enter code" 
                                             value={data.code}
                                             onChange={(e) => setData('code', e.target.value)}

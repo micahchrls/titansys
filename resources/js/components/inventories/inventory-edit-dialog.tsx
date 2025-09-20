@@ -21,7 +21,7 @@ interface InventoryItem {
     part_number: string;
     product_sku: string;
     product_description: string;
-    code: number;
+    code: string;
     product_size: string;
     product_category: string;
     product_brand: string;
@@ -44,9 +44,9 @@ interface InventoryItem {
 
 const formSchema = z.object({
     part_number: z.string().min(1, 'Part number is required'),
-    product_sku: z.string().min(1, 'SKU is required'),
+    product_sku: z.string().optional(),
     product_description: z.string().optional(),
-    code: z.coerce.number().positive('Code must be positive'),
+    code: z.string().min(1, 'Code is required'),
     product_size: z.string().nullable().transform(val => val === null ? "" : val).optional(),
     product_category_id: z.coerce.number().positive('Category is required'),
     product_brand_id: z.coerce.number().positive('Brand is required'),
@@ -80,7 +80,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
             part_number: inventory?.part_number || '',
             product_sku: inventory?.product_sku || '',
             product_description: inventory?.product_description || '',
-            code: inventory?.code || 0,
+            code: inventory?.code || '',
             product_size: inventory?.product_size ?? '',
             product_category_id: inventory?.product_category_id || 0,
             product_brand_id: inventory?.product_brand_id || 0,
@@ -247,7 +247,6 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                 // Check if any required fields are missing or empty
                                 const requiredFields = [
                                     'part_number',
-                                    'product_sku',
                                     'code',
                                     'product_category_id',
                                     'product_brand_id',
@@ -505,7 +504,7 @@ export function InventoryEditDialog({ open, onOpenChange, inventory, brands, cat
                                             <FormItem>
                                                 <FormLabel>Code</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" step="0.01" min="0" {...field} />
+                                                    <Input type="text" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
