@@ -750,7 +750,7 @@ class InventoryController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('inventories.show', $inventory->id)->with('success', 'Stock in successful');
+            return redirect()->route('inventories.index')->with('success', 'Stock added successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error processing stock in: ' . $e->getMessage());
@@ -798,11 +798,11 @@ class InventoryController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('inventories.show', $inventory->id)->with('success', 'Stock out successful');
+            return redirect()->route('inventories.index')->with('success', 'Stock removed successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error processing stock in: ' . $e->getMessage());
-            return false;
+            Log::error('Error processing stock out: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to remove stock. Please try again.');
         }
     }
 

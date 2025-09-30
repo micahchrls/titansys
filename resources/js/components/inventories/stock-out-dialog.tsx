@@ -7,20 +7,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { router } from "@inertiajs/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ArrowUp, Loader2 } from "lucide-react";
 
@@ -42,9 +32,18 @@ export function StockOutDialog({
     const [quantity, setQuantity] = useState<number | ''>('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showConfirmation, setShowConfirmation] = useState(false);
 
-    const handleInitiateStockOut = () => {
+    // Reset form when dialog opens/closes
+    useEffect(() => {
+        if (!open) {
+            setQuantity('');
+            setError(null);
+        }
+    }, [open]);
+
+    const handleStockOut = (e: React.FormEvent) => {
+        e.preventDefault();
+
         if (quantity === '' || Number(quantity) <= 0) {
             setError('Please enter a valid quantity greater than 0');
             return;
@@ -56,39 +55,22 @@ export function StockOutDialog({
         }
 
         setError(null);
-        setShowConfirmation(true);
-    };
-
-    const handleStockOut = () => {
         setLoading(true);
-        setError(null);
 
         router.post(route('inventories.stock-out', inventoryId), {
             quantity: Number(quantity),
         }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['inventories', 'filters'],
             onSuccess: () => {
                 toast.success('Stock removed successfully');
                 setQuantity('');
                 onOpenChange(false);
                 setLoading(false);
-                setShowConfirmation(false);
-                
-                // If a callback was provided, fetch the updated inventory
-                if (onStockUpdated) {
-                    router.get(route('inventories.show', inventoryId), {}, {
-                        onSuccess: (page) => {
-                            onStockUpdated(page.props.inventory);
-                        },
-                        preserveState: true,
-                    });
-                } else {
-                    // Just reload the page to reflect changes
-                    router.reload();
-                }
             },
             onError: (errors) => {
                 setLoading(false);
-                setShowConfirmation(false);
                 setError(errors.quantity || 'Failed to remove stock. Please try again.');
             }
         });
@@ -100,23 +82,19 @@ export function StockOutDialog({
         onOpenChange(false);
     };
 
-    const handleCancelConfirmation = () => {
-        setShowConfirmation(false);
-    };
-
     return (
-        <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <ArrowUp className="h-5 w-5 text-amber-600" />
-                            Stock Out
-                        </DialogTitle>
-                        <DialogDescription>
-                            Remove stock from inventory. Enter the quantity to remove.
-                        </DialogDescription>
-                    </DialogHeader>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <ArrowUp className="h-5 w-5 text-red-600" />
+                        Stock Out
+                    </DialogTitle>
+                    <DialogDescription>
+                        Remove stock from inventory. Enter the quantity to remove.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleStockOut}>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="quantity">
@@ -130,6 +108,7 @@ export function StockOutDialog({
                                 value={quantity}
                                 onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : '')}
                                 placeholder={`Enter quantity to remove (max: ${currentQuantity})`}
+                                autoFocus
                             />
                             {error && (
                                 <div className="text-destructive text-sm">
@@ -142,45 +121,20 @@ export function StockOutDialog({
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={handleCancel} disabled={loading} className="gap-2 hover:cursor-pointer">
+                        <Button type="button" variant="outline" onClick={handleCancel} disabled={loading} className="gap-2 hover:cursor-pointer">
                             Cancel
                         </Button>
                         <Button 
-                            onClick={handleInitiateStockOut} 
+                            type="submit"
                             disabled={loading}
-                            className="gap-2 hover:cursor-pointer"
+                            className="gap-2 bg-red-600 hover:bg-red-700 hover:cursor-pointer"
                         >
                             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                            Continue
+                            Remove Stock
                         </Button>
                     </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Stock Removal</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to remove <span className="font-bold">{quantity}</span> units from inventory?
-                            This action cannot be undone and will leave <span className="font-bold">{currentQuantity - Number(quantity)}</span> units in stock.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={handleCancelConfirmation} disabled={loading} className="gap-2 hover:cursor-pointer">
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleStockOut} 
-                            disabled={loading}
-                            className="gap-2 hover:cursor-pointer"
-                        >
-                            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                            Confirm
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }

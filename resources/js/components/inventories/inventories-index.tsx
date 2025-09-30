@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, FileText, Hash, X, AlertTriangle, CheckCircle2, Copy } from 'lucide-react';
+import { Plus, Trash2, FileText, Hash, X, AlertTriangle, CheckCircle2, Copy, CirclePlus, CircleMinus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Toaster } from 'sonner';
 import InventoriesFormDialog from "@/components/inventories/inventories-form-dialog";
@@ -14,6 +14,8 @@ import InventoryDelete from "@/components/inventories/inventory-delete";
 import { Badge } from '@/components/ui/badge';
 import { InventoryFilters } from './inventory-filters';
 import { toast } from "sonner";
+import { StockInDialog } from './stock-in-dialog';
+import { StockOutDialog } from './stock-out-dialog';
 
 interface InventoriesIndexProps {
     inventories: {
@@ -50,15 +52,18 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
         category: filters?.category || 'all',
         status: filters?.status || 'all',
     });
-    
+
     // Reference to track if this is the initial mount
     const initialMount = useRef(true);
-    
+
     // Local state for UI interaction
     const [formDialogOpen, setFormDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedInventoryId, setSelectedInventoryId] = useState<number | null>(null);
+    const [stockInDialogOpen, setStockInDialogOpen] = useState(false);
+    const [stockOutDialogOpen, setStockOutDialogOpen] = useState(false);
+    const [selectedInventory, setSelectedInventory] = useState<Inventory | null>(null);
 
     // Debounced values for filters
     const debouncedSearch = useDebounce(filterData.search, 500);
@@ -102,6 +107,18 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
         setDeleteDialogOpen(true);
     };
 
+    const handleStockIn = (inventory: Inventory) => {
+        setSelectedInventory(inventory);
+        setSelectedInventoryId(inventory.id);
+        setStockInDialogOpen(true);
+    };
+
+    const handleStockOut = (inventory: Inventory) => {
+        setSelectedInventory(inventory);
+        setSelectedInventoryId(inventory.id);
+        setStockOutDialogOpen(true);
+    };
+
     // Effect to handle debounced filter updates using Inertia's get method
     useEffect(() => {
         // Skip on initial mount
@@ -118,11 +135,11 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
         const currentBrand = filters?.brand || 'all';
         const currentCategory = filters?.category || 'all';
         const currentStatus = filters?.status || 'all';
-        
+
         if (
-            debouncedSearch === currentSearch && 
-            debouncedBrand === currentBrand && 
-            debouncedCategory === currentCategory && 
+            debouncedSearch === currentSearch &&
+            debouncedBrand === currentBrand &&
+            debouncedCategory === currentCategory &&
             debouncedStatus === currentStatus
         ) {
             return;
@@ -185,12 +202,12 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                 const inventory = row.original;
                 const quantity = inventory.quantity;
                 const reorderLevel = inventory.reorder_level;
-                
+
                 // Define status based on quantity and reorder level
                 let status;
                 let className;
                 let icon = null;
-                
+
                 if (quantity <= 0) {
                     status = "Out of Stock";
                     className = "bg-red-100 text-red-800 border-red-200";
@@ -204,7 +221,7 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                     className = "bg-green-100 text-green-800 border-green-200";
                     icon = <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />;
                 }
-                
+
                 return (
                     <div className="flex items-center">
                         <Badge variant="outline" className={`flex items-center px-2.5 py-0.5 ${className}`}>
@@ -217,11 +234,44 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
             enableSorting: false,
         },
         {
+            id: "stock_movement",
+            header: () => <div className="text-center">Stock Movement</div>,
+            cell: ({ row }) => {
+                const inventory = row.original;
+
+                return (
+                    <div className="flex justify-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleStockIn(inventory)}
+                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Stock In"
+                        >
+                            <CirclePlus className="h-5 w-5" />
+                            <span className="sr-only">Stock In</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleStockOut(inventory)}
+                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Stock Out"
+                        >
+                            <CircleMinus className="h-5 w-5" />
+                            <span className="sr-only">Stock Out</span>
+                        </Button>
+                    </div>
+                );
+            },
+            enableSorting: false,
+        },
+        {
             id: "actions",
             header: () => <div className="text-right">Actions</div>,
             cell: ({ row }) => {
                 const inventory = row.original;
-                
+
                 return (
                     <div className="flex justify-end gap-2">
                         <Button
@@ -281,8 +331,8 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                             Manage your inventory items across all locations
                         </p>
                     </div>
-                    <Button 
-                        size="sm" 
+                    <Button
+                        size="sm"
                         onClick={() => setFormDialogOpen(true)}
                         className="h-9 gap-1"
                     >
@@ -291,7 +341,7 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                     </Button>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                    <InventoryFilters 
+                    <InventoryFilters
                         searchValue={filterData.search}
                         brandValue={filterData.brand}
                         categoryValue={filterData.category}
@@ -305,9 +355,9 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
                         onResetFilters={handleResetFilters}
                     />
                     <div className="rounded-md border">
-                        <DataTable 
-                            columns={columns} 
-                            data={inventories.data} 
+                        <DataTable
+                            columns={columns}
+                            data={inventories.data}
                             pagination={paginationData}
                         />
                     </div>
@@ -315,22 +365,41 @@ export default function InventoriesIndex({ inventories, filters = {}, categories
             </Card>
 
             {/* Form Dialog */}
-            <InventoriesFormDialog 
-                open={formDialogOpen} 
-                onOpenChange={setFormDialogOpen} 
+            <InventoriesFormDialog
+                open={formDialogOpen}
+                onOpenChange={setFormDialogOpen}
                 categories={categories}
                 brands={brands}
                 suppliers={suppliers}
                 stores={stores}
             />
-            
+
             {/* Delete Dialog */}
-            <InventoryDelete 
-                open={deleteDialogOpen} 
-                onOpenChange={setDeleteDialogOpen} 
-                inventories={inventories.data} 
-                selectedInventoryId={selectedInventoryId} 
+            <InventoryDelete
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                inventories={inventories.data}
+                selectedInventoryId={selectedInventoryId}
             />
+
+            {/* Stock In Dialog */}
+            {selectedInventoryId && (
+                <StockInDialog
+                    open={stockInDialogOpen}
+                    onOpenChange={setStockInDialogOpen}
+                    inventoryId={selectedInventoryId}
+                />
+            )}
+
+            {/* Stock Out Dialog */}
+            {selectedInventory && (
+                <StockOutDialog
+                    open={stockOutDialogOpen}
+                    onOpenChange={setStockOutDialogOpen}
+                    inventoryId={selectedInventory.id}
+                    currentQuantity={selectedInventory.quantity}
+                />
+            )}
             <Toaster />
         </div>
     );

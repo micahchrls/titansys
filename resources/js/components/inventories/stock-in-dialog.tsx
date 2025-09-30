@@ -7,16 +7,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "@inertiajs/react";
@@ -37,7 +27,6 @@ export function StockInDialog({
     inventoryId,
     onStockUpdated
 }: StockInDialogProps) {
-    const [showConfirmation, setShowConfirmation] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Use Inertia's useForm hook for better form management
@@ -50,11 +39,12 @@ export function StockInDialog({
         if (!open) {
             reset();
             setError(null);
-            setShowConfirmation(false);
         }
     }, [open, reset]);
 
-    const handleInitiateStockIn = () => {
+    const handleStockIn = (e: React.FormEvent) => {
+        e.preventDefault();
+        
         const quantityValue = Number(data.quantity);
         if (!data.quantity || quantityValue <= 0) {
             setError('Please enter a valid quantity greater than 0');
@@ -62,25 +52,16 @@ export function StockInDialog({
         }
 
         setError(null);
-        setShowConfirmation(true);
-    };
 
-    const handleStockIn = () => {
         post(route('inventories.stock-in', inventoryId), {
             preserveState: true,
             preserveScroll: true,
-            onSuccess: (page) => {
+            only: ['inventories', 'filters'],
+            onSuccess: () => {
                 toast.success('Stock added successfully');
                 onOpenChange(false);
-                setShowConfirmation(false);
-                
-                // If a callback was provided, call it with updated data
-                if (onStockUpdated && page.props.inventory) {
-                    onStockUpdated(page.props.inventory);
-                }
             },
             onError: (formErrors) => {
-                setShowConfirmation(false);
                 if (formErrors.quantity) {
                     setError(formErrors.quantity);
                 } else {
@@ -96,23 +77,19 @@ export function StockInDialog({
         onOpenChange(false);
     };
 
-    const handleCancelConfirmation = () => {
-        setShowConfirmation(false);
-    };
-
     return (
-        <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <ArrowDown className="h-5 w-5 text-green-600" />
-                            Stock In
-                        </DialogTitle>
-                        <DialogDescription>
-                            Add stock to inventory. Enter the quantity to add.
-                        </DialogDescription>
-                    </DialogHeader>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <ArrowDown className="h-5 w-5 text-green-600" />
+                        Stock In
+                    </DialogTitle>
+                    <DialogDescription>
+                        Add stock to inventory. Enter the quantity to add.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleStockIn}>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="quantity">
@@ -125,6 +102,7 @@ export function StockInDialog({
                                 value={data.quantity}
                                 onChange={(e) => setData('quantity', e.target.value)}
                                 placeholder="Enter quantity to add"
+                                autoFocus
                             />
                             {(error || errors.quantity) && (
                                 <div className="text-destructive text-sm">
@@ -134,45 +112,20 @@ export function StockInDialog({
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={handleCancel} disabled={processing} className="gap-2 hover:cursor-pointer">
+                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing} className="gap-2 hover:cursor-pointer">
                             Cancel
                         </Button>
                         <Button 
-                            onClick={handleInitiateStockIn} 
+                            type="submit"
                             disabled={processing}
-                            className="gap-2 hover:cursor-pointer"
+                            className="gap-2 bg-green-600 hover:bg-green-700 hover:cursor-pointer"
                         >
                             {processing && <Loader2 className="h-4 w-4 animate-spin" />}
-                            Proceed
+                            Add Stock
                         </Button>
                     </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Stock Addition</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to add <span className="font-bold">{data.quantity}</span> units to inventory?
-                            This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={handleCancelConfirmation} disabled={processing} className="hover:cursor-pointer">
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleStockIn} 
-                            disabled={processing}
-                            className="gap-2 hover:cursor-pointer"
-                        >
-                            {processing && <Loader2 className="h-4 w-4 animate-spin" />}
-                            Confirm
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
